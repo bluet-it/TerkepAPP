@@ -225,8 +225,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:textColor="@android:color/black"
-            android:textColorHint="@android:color/black"
+            android:textColor="@android:color/primary_text_light"
             android:textSize="24sp"
             android:textStyle="bold"
             mapbox:layout_constraintStart_toStartOf="parent"
@@ -236,8 +235,7 @@
             android:id="@+id/address"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@android:color/black"
-            android:textColorHint="@android:color/black"
+            android:textColor="@android:color/secondary_text_dark"
             mapbox:layout_constraintStart_toStartOf="@+id/name"
             mapbox:layout_constraintTop_toBottomOf="@+id/name" />
 
@@ -245,8 +243,7 @@
             android:id="@+id/category"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@android:color/black"
-            android:textColorHint="@android:color/black"
+            android:textColor="@android:color/secondary_text_dark"
             mapbox:layout_constraintStart_toStartOf="@+id/name"
             mapbox:layout_constraintTop_toBottomOf="@+id/address" />
 
@@ -254,8 +251,7 @@
             android:id="@+id/note"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:textColor="@android:color/black"
-            android:textColorHint="@android:color/black"
+            android:textColor="@android:color/secondary_text_dark"
             mapbox:layout_constraintEnd_toEndOf="parent"
             mapbox:layout_constraintHorizontal_bias="0.0"
             mapbox:layout_constraintStart_toStartOf="@+id/address"

@@ -602,7 +602,7 @@ public class MainActivity extends AppCompatActivity implements
                 latitudes_search = new ArrayList<>();
                 longitudes_search = new ArrayList<>();
 
-                EditText input = (EditText) findViewById(R.id.search);
+                EditText input = (EditText) findViewById(R.id.search);//TODO:delete
 
                 if (location != null) {
                     for (int i = 0; i < json.size() - 1; i++) {
@@ -621,7 +621,6 @@ public class MainActivity extends AppCompatActivity implements
                             Feature singleFeature = Feature.fromJson(object);
 
                             String place = "";
-                            if (location != null && order.isChecked()) {
                                 double distance = new LatLng(location.latitude(), location.longitude()).distanceTo(
                                         new LatLng(Double.parseDouble(singleFeature.toJson()
                                                 .split("\"coordinates\":\\[")[1]
@@ -635,7 +634,7 @@ public class MainActivity extends AppCompatActivity implements
                                 }
                                 place += distance;
                                 place += "\r";
-                                if (distance > Double.parseDouble(((EditText) findViewById(R.id.distance)).getText().toString())) {
+                                if (distance < Double.parseDouble(((EditText) findViewById(R.id.distance)).getText().toString())) {
                                     place += singleFeature.getStringProperty(PROPERTY_NAME);
                                     if (!Objects.equals(singleFeature.getStringProperty("addr:postcode"), null)) {
                                         place += " (" + singleFeature.getStringProperty("addr:postcode") + " ";
@@ -673,9 +672,8 @@ public class MainActivity extends AppCompatActivity implements
                                 longitudes_search.add(Double.parseDouble(object
                                         .split("\"coordinates\":\\[")[1]
                                         .split(",")[0]));
-                                Places.add(place);
-                            }
-                        } catch (Exception e) {
+                                Places.add(place);//FIXME: does not filter
+                            } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
