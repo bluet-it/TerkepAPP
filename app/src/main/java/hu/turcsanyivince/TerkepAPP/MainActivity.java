@@ -617,7 +617,6 @@ public class MainActivity extends AppCompatActivity implements
 						try {
 							Feature singleFeature = Feature.fromJson(object);
 
-							String place = "";
 							double distance = new LatLng(location.latitude(), location.longitude()).distanceTo(
 									new LatLng(Double.parseDouble(singleFeature.toJson()
 											.split("\"coordinates\":\\[")[1]
@@ -629,9 +628,10 @@ public class MainActivity extends AppCompatActivity implements
 							if (distance > Integer.MAX_VALUE) {
 								distance = Integer.MAX_VALUE;
 							}
-							place += distance;
-							place += "\r";
 							if (distance < Double.parseDouble(((EditText) findViewById(R.id.distance)).getText().toString())) {
+								String place = "";
+								place += distance;
+								place += "\r";
 								place += singleFeature.getStringProperty(PROPERTY_NAME);
 								if (!Objects.equals(singleFeature.getStringProperty("addr:postcode"), null)) {
 									place += " (" + singleFeature.getStringProperty("addr:postcode") + " ";
@@ -668,7 +668,15 @@ public class MainActivity extends AppCompatActivity implements
 								longitudes_search.add(Double.parseDouble(object
 										.split("\"coordinates\":\\[")[1]
 										.split(",")[0]));
-								Places.add(place);
+								if(Places.size() != 0) {
+									if(Places.contains(place)) {
+										Places.add(place);
+									}else{
+										break;
+									}
+								}else{
+									break;
+								}
 							}
 						} catch (Exception e) {
 							e.printStackTrace();

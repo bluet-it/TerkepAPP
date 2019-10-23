@@ -42,5 +42,5 @@
     <string name="order">rendezés távolság szerint</string>
     <string name="auto">pozíció automatikus frissítése</string>
     <string name="update">frissítés</string>
-    <string name="search_distance">keresés távolság szerint:</string>
+    <string name="search_distance">keresés távolság alapján:</string>
 </resources>
