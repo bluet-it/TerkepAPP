@@ -196,17 +196,17 @@ public class MainActivity extends AppCompatActivity implements
 	// Define the code block to be executed
 	private Runnable update = new Runnable() {
 		@Override
-		public void run() {
+		public void run () {
 			updateMap();
 			handler.postDelayed(this, 10000);
 		}
 	};
 
-	void updateMap() {
+	void updateMap () {
 		Timer t = new Timer();
 		t.scheduleAtFixedRate(new TimerTask() {
 			@Override
-			public void run() {
+			public void run () {
 				{
 					Switch update = findViewById(R.id.auto);
 					if (update.isChecked()) {
@@ -330,7 +330,7 @@ public class MainActivity extends AppCompatActivity implements
 	}
 
 	@Override
-	public void onBackPressed() {
+	public void onBackPressed () {
 		long currentTime = System.currentTimeMillis();
 		if (currentTime - mLastPress > TOAST_DURATION) {
 			onBackPressedToast = Toast.makeText(this, R.string.confirm_exit, Toast.LENGTH_SHORT);
@@ -349,7 +349,7 @@ public class MainActivity extends AppCompatActivity implements
 	}
 
 	@Override
-	public void onItemClick(View view, int position) {
+	public void onItemClick (View view, int position) {
 
 		findViewById(R.id.linearLayout).setVisibility(View.GONE);
 		findViewById(R.id.center_map).setVisibility(View.VISIBLE);
@@ -374,7 +374,7 @@ public class MainActivity extends AppCompatActivity implements
 		mapboxMap.animateCamera(CameraUpdateFactory.newCameraPosition(location), 5000);
 	}
 
-	void search() {
+	void search () {
 		new Thread(() -> {
 			ArrayList<String> Places = new ArrayList<>();
 			latitudes_search = new ArrayList<>();
@@ -530,7 +530,11 @@ public class MainActivity extends AppCompatActivity implements
 						longitudes_search.add(Double.parseDouble(object
 								.split("\"coordinates\":\\[")[1]
 								.split(",")[0]));
-						Places.add(place);
+						if (Places.contains(place)) {
+							Places.add(place);
+						} else if (Places.size() == 0) {
+							Places.add(place);
+						}
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -579,7 +583,7 @@ public class MainActivity extends AppCompatActivity implements
 	}
 
 	@Override
-	public void onClick(View v) {
+	public void onClick (View v) {
 		if (v == findViewById(R.id.search_button)) {
 			search();
 		} else if (v == findViewById(R.id.close)) {
@@ -671,12 +675,10 @@ public class MainActivity extends AppCompatActivity implements
 										.split(",")[0]));
 								if (Places.contains(place)) {
 									Places.add(place);
-								} else if(Places.size() == 0) {
+								} else if (Places.size() == 0) {
 									Places.add(place);
-								}else{
-										break;
-									}
 								}
+							}
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
@@ -744,7 +746,7 @@ public class MainActivity extends AppCompatActivity implements
 	}
 
 	@Override
-	protected void onCreate(Bundle savedInstanceState) {
+	protected void onCreate (Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 // Mapbox access token is configured here. This needs to be called either in your application
 // object or in the same activity which contains the mapview.
@@ -774,8 +776,8 @@ public class MainActivity extends AppCompatActivity implements
 
 	}
 
-	public void onItemSelected(AdapterView<?> parent, View view,
-	                           int pos, long id) {
+	public void onItemSelected (AdapterView<?> parent, View view,
+	                            int pos, long id) {
 		String key = "";
 		String value = "";
 		String s = parent.getSelectedItem().toString();
@@ -891,10 +893,10 @@ public class MainActivity extends AppCompatActivity implements
 		}
 	}
 
-	public void onNothingSelected(AdapterView<?> parent) {
+	public void onNothingSelected (AdapterView<?> parent) {
 	}
 
-	public void FillList(ArrayList<String> Places) {
+	public void FillList (ArrayList<String> Places) {
 		// set up the RecyclerView
 		RecyclerView recyclerView = findViewById(R.id.recyclerView);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -906,7 +908,7 @@ public class MainActivity extends AppCompatActivity implements
 	}
 
 	@Override
-	public void onMapReady(@NonNull final MapboxMap mapboxMap) {
+	public void onMapReady (@NonNull final MapboxMap mapboxMap) {
 		this.mapboxMap = mapboxMap;
 
 		String url;
@@ -973,7 +975,7 @@ public class MainActivity extends AppCompatActivity implements
 	 * Initialize the Maps SDK's LocationComponent
 	 */
 	@SuppressWarnings({"MissingPermission"})
-	private void enableLocationComponent(@NonNull Style loadedMapStyle) {
+	private void enableLocationComponent (@NonNull Style loadedMapStyle) {
 // Check if permissions are enabled and if not request
 		if (PermissionsManager.areLocationPermissionsGranted(this)) {
 
@@ -1006,7 +1008,7 @@ public class MainActivity extends AppCompatActivity implements
 	 * Set up the LocationEngine and the parameters for querying the device's location
 	 */
 	@SuppressLint("MissingPermission")
-	private void initLocationEngine() {
+	private void initLocationEngine () {
 		locationEngine = LocationEngineProvider.getBestLocationEngine(this);
 
 		LocationEngineRequest request = new LocationEngineRequest.Builder(DEFAULT_INTERVAL_IN_MILLISECONDS)
@@ -1018,17 +1020,17 @@ public class MainActivity extends AppCompatActivity implements
 	}
 
 	@Override
-	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+	public void onRequestPermissionsResult (int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 		permissionsManager.onRequestPermissionsResult(requestCode, permissions, grantResults);
 	}
 
 	@Override
-	public void onExplanationNeeded(List<String> permissionsToExplain) {
+	public void onExplanationNeeded (List<String> permissionsToExplain) {
 
 	}
 
 	@Override
-	public void onPermissionResult(boolean granted) {
+	public void onPermissionResult (boolean granted) {
 		if (granted) {
 			if (mapboxMap.getStyle() != null) {
 				enableLocationComponent(mapboxMap.getStyle());
@@ -1039,7 +1041,7 @@ public class MainActivity extends AppCompatActivity implements
 	}
 
 	@Override
-	protected void onStart() {
+	protected void onStart () {
 		int nightModeFlags =
 				mapView.getContext().getResources().getConfiguration().uiMode &
 						Configuration.UI_MODE_NIGHT_MASK;
@@ -1244,19 +1246,19 @@ public class MainActivity extends AppCompatActivity implements
 	}
 
 	@Override
-	protected void onResume() {
+	protected void onResume () {
 		super.onResume();
 		mapView.onResume();
 	}
 
 	@Override
-	protected void onPause() {
+	protected void onPause () {
 		super.onPause();
 		mapView.onPause();
 	}
 
 	@Override
-	protected void onStop() {
+	protected void onStop () {
 		super.onStop();
 
 		if (locationEngine != null) {
@@ -1267,13 +1269,13 @@ public class MainActivity extends AppCompatActivity implements
 	}
 
 	@Override
-	protected void onSaveInstanceState(Bundle outState) {
+	protected void onSaveInstanceState (Bundle outState) {
 		super.onSaveInstanceState(outState);
 		mapView.onSaveInstanceState(outState);
 	}
 
 	@Override
-	protected void onDestroy() {
+	protected void onDestroy () {
 		super.onDestroy();
 // Prevent leaks
 		if (locationEngine != null) {
@@ -1283,20 +1285,20 @@ public class MainActivity extends AppCompatActivity implements
 	}
 
 	@Override
-	public void onLowMemory() {
+	public void onLowMemory () {
 		super.onLowMemory();
 		mapView.onLowMemory();
 	}
 
 	@Override
-	public void onWindowFocusChanged(boolean hasFocus) {
+	public void onWindowFocusChanged (boolean hasFocus) {
 		super.onWindowFocusChanged(hasFocus);
 		if (hasFocus) {
 			hideSystemUI();
 		}
 	}
 
-	private void hideSystemUI() {
+	private void hideSystemUI () {
 		// Enables regular immersive mode.
 		// For "lean back" mode, remove SYSTEM_UI_FLAG_IMMERSIVE.
 		// Or for "sticky immersive," replace it with SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -1314,7 +1316,7 @@ public class MainActivity extends AppCompatActivity implements
 						| View.SYSTEM_UI_FLAG_LOW_PROFILE);
 	}
 
-	private void addClusteredGeoJsonSource(@NonNull Style loadedMapStyle) {
+	private void addClusteredGeoJsonSource (@NonNull Style loadedMapStyle) {
 // Use the GeoJSON source to create three layers: One layer for each cluster category.
 // Each point range gets a different fill color.
 		int[][] layers = new int[][]{
@@ -1360,7 +1362,7 @@ public class MainActivity extends AppCompatActivity implements
 	}
 
 	@SuppressLint("WrongConstant")
-	private void addGeoJsonNodeSource(@NonNull Style loadedMapStyle) {
+	private void addGeoJsonNodeSource (@NonNull Style loadedMapStyle) {
 //Creating a marker layer for single data points
 		SymbolLayer unclustered = new SymbolLayer("unclustered-points",
 				"points");
@@ -1437,7 +1439,7 @@ public class MainActivity extends AppCompatActivity implements
 	}
 
 	@Override
-	public boolean onMapClick(@NonNull LatLng point) {
+	public boolean onMapClick (@NonNull LatLng point) {
 		return handleClickIcon(mapboxMap.getProjection().toScreenLocation(point));
 	}
 
@@ -1446,7 +1448,7 @@ public class MainActivity extends AppCompatActivity implements
 	 *
 	 * @param collection the FeatureCollection to set equal to the globally-declared FeatureCollection
 	 */
-	public void setUpData(final FeatureCollection collection) {
+	public void setUpData (final FeatureCollection collection) {
 		featureCollection = collection;
 		if (mapboxMap != null) {
 			mapboxMap.getStyle(style -> {
@@ -1461,7 +1463,7 @@ public class MainActivity extends AppCompatActivity implements
 	/**
 	 * Adds the GeoJSON source to the map
 	 */
-	private void setupSource(@NonNull Style loadedStyle) {
+	private void setupSource (@NonNull Style loadedStyle) {
 		source = new GeoJsonSource(GEOJSON_SOURCE_ID, featureCollection);
 		loadedStyle.addSource(source);
 	}
@@ -1469,7 +1471,7 @@ public class MainActivity extends AppCompatActivity implements
 	/**
 	 * Updates the display of data on the map after the FeatureCollection has been modified
 	 */
-	private void refreshSource() {
+	private void refreshSource () {
 		if (source != null && featureCollection != null) {
 			source.setGeoJson(featureCollection);
 		}
@@ -1491,7 +1493,7 @@ public class MainActivity extends AppCompatActivity implements
 	 *
 	 * @param screenPoint the point on screen clicked
 	 */
-	private boolean handleClickIcon(PointF screenPoint) {
+	private boolean handleClickIcon (PointF screenPoint) {
 		List<Feature> features = mapboxMap.queryRenderedFeatures(screenPoint/*, "unclustered-points"*/);
 		if (!features.isEmpty()) {
 			for (int j = 0; j < features.size(); j++) {
@@ -1726,7 +1728,7 @@ public class MainActivity extends AppCompatActivity implements
 	/**
 	 * Invoked when the bitmaps have been generated from a view.
 	 */
-	public void setImageGenResults(HashMap<String, Bitmap> imageMap) {
+	public void setImageGenResults (HashMap<String, Bitmap> imageMap) {
 		if (mapboxMap != null) {
 			mapboxMap.getStyle(style -> {
 // calling addImages is faster as separate addImage calls for each bitmap.
@@ -1779,7 +1781,7 @@ public class MainActivity extends AppCompatActivity implements
 
 		private final WeakReference<MainActivity> activityWeakReference;
 
-		MainActivityLocationCallback(MainActivity activity) {
+		MainActivityLocationCallback (MainActivity activity) {
 			this.activityWeakReference = new WeakReference<>(activity);
 		}
 
@@ -1790,7 +1792,7 @@ public class MainActivity extends AppCompatActivity implements
 		 */
 		@SuppressLint("StringFormatInvalid")
 		@Override
-		public void onSuccess(LocationEngineResult result) {
+		public void onSuccess (LocationEngineResult result) {
 			MainActivity activity = activityWeakReference.get();
 
 			if (activity != null) {
@@ -1813,7 +1815,7 @@ public class MainActivity extends AppCompatActivity implements
 		 * @param exception the exception message
 		 */
 		@Override
-		public void onFailure(@NonNull Exception exception) {
+		public void onFailure (@NonNull Exception exception) {
 			Log.d("LocationChangeActivity", exception.getLocalizedMessage());
 			MainActivity activity = activityWeakReference.get();
 			if (activity != null) {
@@ -1843,7 +1845,7 @@ public class MainActivity extends AppCompatActivity implements
 
 	class GeocodeTask extends AsyncTask<Feature, Void, List<CarmenFeature>> {
 
-		protected List<CarmenFeature> doInBackground(Feature... features) {
+		protected List<CarmenFeature> doInBackground (Feature... features) {
             /*MapboxGeocoder client = new MapboxGeocoder.Builder()
                     .setAccessToken(getString(R.string.access_token))
                     .setCoordinates(
@@ -1881,7 +1883,7 @@ public class MainActivity extends AppCompatActivity implements
 			return locations;
 		}
 
-		protected void onPostExecute(Void result) {
+		protected void onPostExecute (Void result) {
 
 		}
 	}
@@ -1894,11 +1896,11 @@ public class MainActivity extends AppCompatActivity implements
 
 		private final WeakReference<MainActivity> activityRef;
 
-		LoadGeoJsonDataTask(MainActivity activity) {
+		LoadGeoJsonDataTask (MainActivity activity) {
 			this.activityRef = new WeakReference<>(activity);
 		}
 
-		String loadGeoJsonFromAsset(String filename) {
+		String loadGeoJsonFromAsset (String filename) {
 			StringBuilder sb = new StringBuilder();
 			try {
 				HttpURLConnection c = (HttpURLConnection) new URL(
@@ -1918,7 +1920,7 @@ public class MainActivity extends AppCompatActivity implements
 		}
 
 		@Override
-		protected FeatureCollection doInBackground(Void... params) {
+		protected FeatureCollection doInBackground (Void... params) {
 			MainActivity activity = activityRef.get();
 
 			if (activity == null) {
@@ -1929,7 +1931,7 @@ public class MainActivity extends AppCompatActivity implements
 			return FeatureCollection.fromJson(geoJson);
 		}
 
-		private Polygon fromJson(String json) {
+		private Polygon fromJson (String json) {
 			GsonBuilder gsonBuilder = new GsonBuilder();
 			gsonBuilder.registerTypeAdapter(Position.class, new PositionDeserializer());
 			Type listType = new TypeToken<ArrayList<ArrayList<Position>>>() {
@@ -1941,7 +1943,7 @@ public class MainActivity extends AppCompatActivity implements
 		}
 
 		@Override
-		protected void onPostExecute(FeatureCollection featureCollection) {
+		protected void onPostExecute (FeatureCollection featureCollection) {
 			super.onPostExecute(featureCollection);
 			MainActivity activity = activityRef.get();
 			if (featureCollection == null || activity == null) {
