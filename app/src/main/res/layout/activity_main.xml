@@ -110,6 +110,7 @@
                 android:entries="@array/filter" />
 
             <LinearLayout
+                android:id="@+id/distanceLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -123,7 +124,7 @@
                     android:text="@string/search_distance" />
 
                 <EditText
-                    android:id="@+id/editText2"
+                    android:id="@+id/distance"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -131,7 +132,7 @@
                     android:inputType="number" />
 
                 <Button
-                    android:id="@+id/button"
+                    android:id="@+id/search_distance"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"

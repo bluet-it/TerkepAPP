@@ -43,7 +43,7 @@
     <string name="dairyfree">dairy free</string>
     <string name="lactosefree">lactose free</string>
     <string name="order">sort by distance</string>
-    <string name="auto">update automatically</string>
+    <string name="auto">update location automatically</string>
     <string name="update">update</string>
     <string name="search_distance">search by distance:</string>
 </resources>

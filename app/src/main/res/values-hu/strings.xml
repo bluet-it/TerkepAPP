@@ -40,7 +40,7 @@
     <string name="vegetarian">vegetáriánus</string>
     <string name="lactosefree">laktózmentes</string>
     <string name="order">rendezés távolság szerint</string>
-    <string name="auto">automatikus frissítés</string>
+    <string name="auto">pozíció automatikus frissítése</string>
     <string name="update">frissítés</string>
-    <string name="search_distance">search by distance:</string>
+    <string name="search_distance">keresés távolság szerint:</string>
 </resources>
