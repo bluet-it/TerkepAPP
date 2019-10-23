@@ -1,23 +1,19 @@
 package hu.turcsanyivince.TerkepAPP;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.location.Location;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
@@ -28,15 +24,11 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
-import android.view.Window;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Space;
@@ -54,24 +46,18 @@ import com.mapbox.android.core.location.LocationEngineRequest;
 import com.mapbox.android.core.location.LocationEngineResult;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
-import com.mapbox.api.geocoding.v5.GeocodingCriteria;
 import com.mapbox.api.geocoding.v5.MapboxGeocoding;
 import com.mapbox.api.geocoding.v5.models.CarmenFeature;
 import com.mapbox.api.geocoding.v5.models.GeocodingResponse;
-import com.mapbox.geocoder.MapboxGeocoder;
-import com.mapbox.geocoder.service.models.GeocoderFeature;
-import com.mapbox.geocoder.service.models.GeocoderResponse;
 import com.mapbox.geojson.Feature;
 import com.mapbox.geojson.FeatureCollection;
 import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
-import com.mapbox.mapboxsdk.annotations.BubbleLayout;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions;
-import com.mapbox.mapboxsdk.location.OnLocationCameraTransitionListener;
 import com.mapbox.mapboxsdk.location.modes.CameraMode;
 import com.mapbox.mapboxsdk.location.modes.RenderMode;
 import com.mapbox.mapboxsdk.maps.MapView;
@@ -92,34 +78,25 @@ import com.mapbox.services.commons.geojson.custom.PositionDeserializer;
 import com.mapbox.services.commons.models.Position;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ExecutionException;
 
 import retrofit2.Response;
 
 import static com.mapbox.mapboxsdk.style.expressions.Expression.all;
-import static com.mapbox.mapboxsdk.style.expressions.Expression.coalesce;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.eq;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.get;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.gt;
@@ -127,9 +104,8 @@ import static com.mapbox.mapboxsdk.style.expressions.Expression.gte;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.has;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.literal;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.lt;
+import static com.mapbox.mapboxsdk.style.expressions.Expression.not;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.toNumber;
-import static com.mapbox.mapboxsdk.style.expressions.Expression.zoom;
-import static com.mapbox.mapboxsdk.style.layers.Property.ICON_ANCHOR_BOTTOM;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.circleColor;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.circleRadius;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillColor;
@@ -160,7 +136,6 @@ public class MainActivity extends AppCompatActivity implements
     public ArrayList<String> json = new ArrayList<>();
     // Variables needed to initialize a map
     boolean dark = false;
-    boolean updated = true;
     Point location = null;
     public MapboxMap mapboxMap;
     double lastLat = 0;
@@ -235,13 +210,11 @@ public class MainActivity extends AppCompatActivity implements
     };
 
     void updateMap() {
-        //if (updated) {
-            updated = false;
-            Timer t = new Timer();
+        Timer t = new Timer();
             t.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    {//TODO
+                    {
                         Switch update = findViewById(R.id.auto);
                         if(update.isChecked()) {
                             try {
@@ -349,7 +322,6 @@ public class MainActivity extends AppCompatActivity implements
                                     i++;
                                 }
                                 runOnUiThread(() -> {
-                                    updated = true;
                                     FillList(Places);
                                 });
                             } catch (Exception e) {
@@ -359,9 +331,6 @@ public class MainActivity extends AppCompatActivity implements
                     }
                 }
             }, 0, 10000);
-        //} else {
-
-        //}//TODO
     }
 
     @Override
@@ -574,26 +543,26 @@ public class MainActivity extends AppCompatActivity implements
         Switch order = findViewById(R.id.order);
         if (location != null && order.isChecked()) {
             Collections.sort(Places, NumberAwareStringComparator.INSTANCE);
+            int i = 0;
+            for (String place : Places) {//TODO
+                int position = Integer.parseInt(Places.get(i).split("\n")[1]);
+                Places.set(i, Places.get(i).split("\n")[0]);
+                if (location != null && order.isChecked()) {
+                    Places.set(i, Places.get(i).split("\r")[1]);
+                }
+                latitudes_search.add(Double.parseDouble(place
+                        .split("\"coordinates\":\\[")[1]
+                        .split(",")[1]
+                        .split("]")[0]));
+                longitudes_search.add(Double.parseDouble(place
+                        .split("\"coordinates\":\\[")[1]
+                        .split(",")[0]));
+                i++;
+            }
         } else {
             Collections.sort(Places);
         }
 
-        int i = 0;
-        for (String place : Places) {//TODO
-            int position = Integer.parseInt(Places.get(i).split("\n")[1]);
-            Places.set(i, Places.get(i).split("\n")[0]);
-            if (location != null && order.isChecked()) {
-                Places.set(i, Places.get(i).split("\r")[1]);
-            }
-            latitudes_search.add(Double.parseDouble(place
-                    .split("\"coordinates\":\\[")[1]
-                    .split(",")[1]
-                    .split("]")[0]));
-            longitudes_search.add(Double.parseDouble(place
-                    .split("\"coordinates\":\\[")[1]
-                    .split(",")[0]));
-            i++;
-        }
 
         // set up the RecyclerView
         RecyclerView recyclerView = findViewById(R.id.search_results);
@@ -1266,7 +1235,7 @@ public class MainActivity extends AppCompatActivity implements
         }
         unclustered.setProperties(
                 iconImage("icon"),
-                textField(/*Expression.coalesce(*/Expression.switchCase(
+                textField(Expression.switchCase(
                         eq(get("amenity"), "veterinary"),
                         literal(getResources().getString(R.string.vet)),
                         eq(get("amenity"), "theatre"),
@@ -1302,9 +1271,18 @@ public class MainActivity extends AppCompatActivity implements
                         eq(get("tourism"), "museum"),
                         literal(getResources().getString(R.string.museum)),
                         eq(get("tourism"), "gallery"),
-                        literal(getResources().getString(R.string.gallery)),/*
-                        Expression.switchCase(Expression.not(eq(get("shop"), "")),
-                        literal(getResources().getString(R.string.shop)), literal("")),*/
+                        literal(getResources().getString(R.string.gallery)),
+
+                        eq(get("amenity"), ""),
+                        literal(""),
+                        eq(get("shop"), ""),
+                        literal(""),
+                        eq(get("animal_training"), ""),
+                        literal(""),
+                        eq(get("leisure"), ""),
+                        literal(""),
+                        eq(get("tourism"), ""),
+                        literal(""),
                         literal(getResources().getString(R.string.other)))),
                 textSize(18f),
                 textColor(Color.BLACK),
@@ -1415,7 +1393,7 @@ public class MainActivity extends AppCompatActivity implements
                             String style = "";
 
                             Feature feature = featureList.get(i);
-                            if (feature.getStringProperty("amenity") != null) {//TODO: add all texts
+                            if (feature.getStringProperty("amenity") != null) {
                                 switch (feature.getStringProperty("amenity")) {
                                     case "veterinary":
                                         style = getResources().getString(R.string.vet);
@@ -1487,15 +1465,24 @@ public class MainActivity extends AppCompatActivity implements
                                     style = getResources().getString(R.string.TODO());
                                     break;
                             }*/
-                            } else if (feature.toJson().contains("diet")) {
-                                //TODO: complete
-                            /*switch (feature.toJson().split("\"diet:")[1].split("\"")[0]) {
-                                case "TODO()":
-                                    style = getResources().getString(R.string.TODO());
-                                    break;
-                            }*/
-                            } else {
-                                style = getResources().getString(R.string.other);
+                            } else{
+                                if (feature.getStringProperty("diet.vegan") != null) {
+                                    style = getResources().getString(R.string.vegan);
+                                }
+                                if (feature.getStringProperty("diet.vegetarian") != null) {
+                                    style = getResources().getString(R.string.vegetarian);
+                                }
+                                if (feature.getStringProperty("diet.gluten_free") != null) {
+                                    style = getResources().getString(R.string.glutenfree);
+                                }
+                                if (feature.getStringProperty("diet.lactose_free") != null) {
+                                    style = getResources().getString(R.string.lactosefree);
+                                }
+                                if (feature.getStringProperty("diet.dairy_free") != null) {
+                                    style = getResources().getString(R.string.dairyfree);
+                                } else {
+                                    style = getResources().getString(R.string.other);
+                                }
                             }
 
                             if (feature.getStringProperty("wheelchair") != null&&
