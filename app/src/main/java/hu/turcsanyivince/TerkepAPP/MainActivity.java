@@ -612,6 +612,7 @@ public class MainActivity extends AppCompatActivity implements
 				}
 
 				if (location != null) {
+					double query = Double.parseDouble(((EditText) findViewById(R.id.distance)).getText().toString()) / 1000;
 					for (int i = 0; i < json.size() - 1; i++) {
 						String object = json.get(i);
 						try {
@@ -628,7 +629,7 @@ public class MainActivity extends AppCompatActivity implements
 							if (distance > Integer.MAX_VALUE) {
 								distance = Integer.MAX_VALUE;
 							}
-							if (distance < Double.parseDouble(((EditText) findViewById(R.id.distance)).getText().toString())) {
+							if (distance < query) {
 								String place = "";
 								place += distance;
 								place += "\r";
@@ -668,16 +669,14 @@ public class MainActivity extends AppCompatActivity implements
 								longitudes_search.add(Double.parseDouble(object
 										.split("\"coordinates\":\\[")[1]
 										.split(",")[0]));
-								if(Places.size() != 0) {
-									if(Places.contains(place)) {
-										Places.add(place);
-									}else{
+								if (Places.contains(place)) {
+									Places.add(place);
+								} else if(Places.size() == 0) {
+									Places.add(place);
+								}else{
 										break;
 									}
-								}else{
-									break;
 								}
-							}
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
