@@ -1,0 +1,8 @@
+#! /bin/bash
+
+./run uninstall hu.turcsanyivince.TerkepAPP.KutyAPP
+./run uninstall hu.turcsanyivince.TerkepAPP.KulturAPP
+./run uninstall hu.turcsanyivince.TerkepAPP.KerekAPP
+./run uninstall hu.turcsanyivince.TerkepAPP.H2OAPP
+./run uninstall hu.turcsanyivince.TerkepAPP.EtrendAPP
+./run uninstall hu.turcsanyivince.TerkepAPP.EgeszsegAPP

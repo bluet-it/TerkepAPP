@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+        <string-array name="filter">
+            <item>@string/all</item>
+            <item>@string/training</item>
+            <item>@string/access</item>
+            <item>@string/vet</item>
+            <item>@string/grooming</item>
+            <item>@string/shop</item>
+            <item>@string/trash</item>
+        </string-array>
+    </resources>

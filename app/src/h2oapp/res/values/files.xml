@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appname" translatable="false">H2OAPP</string>
+    <string name="file_name" translatable="false">h2o</string>
+</resources>

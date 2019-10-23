@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="list">lista</string>
+    <string name="map">térkép</string>
+    <string name="search">keresés</string>
+    <string name="googlemaps">megnyitás a Google Térképben</string>
+    <string name="access">látogathatóság</string>
+    <string name="grooming">kozmetika</string>
+    <string name="park">kutyafuttató</string>
+    <string name="shop">bolt</string>
+    <string name="training">kutyaiskola</string>
+    <string name="vet">állatorvos</string>
+    <string name="trash">kuka</string>
+    <string name="filter">szűrő</string>
+    <string name="theatre">színház</string>
+    <string name="archive">arhívum</string>
+    <string name="library">könyvtár</string>
+    <string name="concerthall">koncertterem</string>
+    <string name="water">víz</string>
+    <string name="toilet">mellékhelység</string>
+    <string name="bookshop">könyvesbolt</string>
+    <string name="museum">múzeum</string>
+    <string name="gallery">galléria</string>
+    <string name="accessible">látogatható</string>
+    <string name="designated">használható, de kizárólag</string>
+    <string name="limited">limitált</string>
+    <string name="other">egyéb</string>
+    <string name="confirm_exit">a kilépéshez nyomja meg újra</string>
+    <string name="dog">kutyával</string>
+    <string name="and">és</string>
+    <string name="wheelchair">kerekesszékeseknek</string>
+    <string name="bar">bár</string>
+    <string name="cafe">kávéház</string>
+    <string name="pub">kocsma</string>
+    <string name="restaurant">étterem</string>
+    <string name="all">összes</string>
+    <string name="dairyfree">tejtermékmentes</string>
+    <string name="glutenfree">gluténmentes</string>
+    <string name="vegan">vegán</string>
+    <string name="vegetarian">vegetáriánus</string>
+    <string name="lactosefree">laktózmentes</string>
+    <string name="order">rendezés távolság szerint</string>
+    <string name="auto">automatikus frissítés</string>
+    <string name="update">frissítés</string>
+    <string name="search_distance">search by distance:</string>
+</resources>

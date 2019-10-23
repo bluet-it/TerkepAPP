@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+        <string-array name="filter">
+            <item>@string/all</item>
+            <item>@string/museum</item>
+            <item>@string/gallery</item>
+            <item>@string/archive</item>
+            <item>@string/theatre</item>
+            <item>@string/bookshop</item>
+            <item>@string/library</item>
+            <item>@string/concerthall</item>
+        </string-array>
+    </resources>

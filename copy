@@ -1,0 +1,21 @@
+#!/bin/bash
+path=/home/$USER/Desktop/apk
+
+./gradlew build
+
+move () {
+	mkdir -pv $path
+	cp -v app/build/outputs/apk/$1/debug/app-$1-debug.apk $path/$1.apk
+}
+
+move kutyapp
+move kulturapp
+move kerekapp
+move etrendapp
+move egeszsegapp
+move h2oapp
+
+path_old=$(pwd)
+cd $path
+md5sum *.apk | tee $path/checksum.md5
+cd ..

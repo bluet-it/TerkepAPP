@@ -1,0 +1,49 @@
+<resources>
+    <string name="app_name" translatable="false">@string/appname</string>
+    <string name="access_token" translatable="false">@string/accesstoken</string>
+    <string name="style_url" translatable="false">mapbox://styles/bluetit/cjz2k6dyk03ql1cl8g3j23m97</string>
+    <string name="style_url_dark" translatable="false">mapbox://styles/bluetit/ck09jog861dbc1cqr632dc162</string>
+    <string name="map">map</string>
+    <string name="list">list</string>
+    <string name="search">search</string>
+    <string name="googlemaps">open in Google Maps</string>
+    <string name="filter">filter</string>
+    <string name="vet">veterinary</string>
+    <string name="access">access</string>
+    <string name="shop">shop</string>
+    <string name="grooming">grooming</string>
+    <string name="training">training</string>
+    <string name="park">park</string>
+    <string name="trash">trash</string>
+    <string name="theatre">theatre</string>
+    <string name="archive">archive</string>
+    <string name="library">library</string>
+    <string name="concerthall">concert hall</string>
+    <string name="water">water</string>
+    <string name="toilet">toilet</string>
+    <string name="bookshop">bookshop</string>
+    <string name="museum">museum</string>
+    <string name="gallery">gallery</string>
+    <string name="accessible">accessible</string>
+    <string name="designated">designated</string>
+    <string name="limited">limited</string>
+    <string name="other">other</string>
+    <string name="confirm_exit">press again to exit</string>
+    <string name="and">and</string>
+    <string name="dog">for dogs</string>
+    <string name="wheelchair">for wheelchair</string>
+    <string name="cafe">cafe</string>
+    <string name="pub">pub</string>
+    <string name="bar">bar</string>
+    <string name="restaurant">restaurant</string>
+    <string name="all">all</string>
+    <string name="vegetarian">vegetarian</string>
+    <string name="vegan">vegan</string>
+    <string name="glutenfree">gluten free</string>
+    <string name="dairyfree">dairy free</string>
+    <string name="lactosefree">lactose free</string>
+    <string name="order">sort by distance</string>
+    <string name="auto">update automatically</string>
+    <string name="update">update</string>
+    <string name="search_distance">search by distance:</string>
+</resources>
