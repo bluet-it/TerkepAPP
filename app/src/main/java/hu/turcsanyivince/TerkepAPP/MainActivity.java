@@ -530,10 +530,10 @@ public class MainActivity extends AppCompatActivity implements
 						longitudes_search.add(Double.parseDouble(object
 								.split("\"coordinates\":\\[")[1]
 								.split(",")[0]));
-						if (Places.contains(place)) {
+						if (!Places.contains(place)) {
 							Places.add(place);
-						} else if (Places.size() == 0) {
-							Places.add(place);
+						}else {
+							break;
 						}
 					}
 				} catch (Exception e) {
