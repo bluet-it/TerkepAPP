@@ -690,7 +690,7 @@ public class MainActivity extends AppCompatActivity implements
 				if (location != null && order.isChecked()) {
 					Collections.sort(Places, NumberAwareStringComparator.INSTANCE);
 					int i = 0;
-					for (String place : Places) {//TODO
+					for (String place : Places) {
 						Places.set(i, Places.get(i).split("\n")[0]);
 						if (location != null && order.isChecked()) {
 							Places.set(i, Places.get(i).split("\r")[1]);
@@ -742,7 +742,6 @@ public class MainActivity extends AppCompatActivity implements
 					imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
 				}
 			}).run();
-			//TODO
 		}
 	}
 
@@ -779,7 +778,7 @@ public class MainActivity extends AppCompatActivity implements
 
 	public void onItemSelected (AdapterView<?> parent, View view,
 	                            int pos, long id) {
-		String key = "";
+		String key = "";//TODO: add address and distance
 		String value = "";
 		String s = parent.getSelectedItem().toString();
 		if (s.equals(getResources().getString(R.string.all))) {
@@ -1415,7 +1414,6 @@ public class MainActivity extends AppCompatActivity implements
 						literal(getResources().getString(R.string.museum)),
 						eq(get("tourism"), "gallery"),
 						literal(getResources().getString(R.string.gallery)),
-
 						eq(get("amenity"), ""),
 						literal(""),
 						eq(get("shop"), ""),
