@@ -24,7 +24,7 @@ public class Items extends RecyclerView.Adapter<Items.ViewHolder> {
 	// inflates the row layout from xml when needed
 	@Override
 	public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-		parent.removeAllViews();//FIXME
+		//parent.removeAllViews();//FIXME
 		View view = mInflater.inflate(R.layout.items, parent, false);
 		return new ViewHolder(view);
 	}

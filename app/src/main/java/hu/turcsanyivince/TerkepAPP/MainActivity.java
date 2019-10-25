@@ -603,6 +603,7 @@ public class MainActivity extends AppCompatActivity implements
 		} else if (v == findViewById(R.id.search_distance)) {
 			new Thread(() -> {
 				ArrayList<String> Places = new ArrayList<>();
+				ArrayList<String> filter = new ArrayList<>();
 				latitudes_search = new ArrayList<>();
 				longitudes_search = new ArrayList<>();
 				Switch order = findViewById(R.id.order);
@@ -616,7 +617,7 @@ public class MainActivity extends AppCompatActivity implements
 				}
 
 				if (location != null) {
-					double query = Double.parseDouble(((EditText) findViewById(R.id.distance)).getText().toString()) / 1000;
+					double query = Double.parseDouble(((EditText) findViewById(R.id.distance)).getText().toString()) * 1000;
 					for (int i = 0; i < json.size() - 1; i++) {
 						String object = json.get(i);
 						try {
@@ -673,10 +674,11 @@ public class MainActivity extends AppCompatActivity implements
 								longitudes_search.add(Double.parseDouble(object
 										.split("\"coordinates\":\\[")[1]
 										.split(",")[0]));
-								if (Places.contains(place)) {
+								if (!Places.contains(place)) {
 									Places.add(place);
-								} else if (Places.size() == 0) {
-									Places.add(place);
+									filter.add(object);
+								}else{
+									break;
 								}
 							}
 						} catch (Exception e) {
@@ -689,35 +691,34 @@ public class MainActivity extends AppCompatActivity implements
 					Collections.sort(Places, NumberAwareStringComparator.INSTANCE);
 					int i = 0;
 					for (String place : Places) {//TODO
-						int position = Integer.parseInt(Places.get(i).split("\n")[1]);
 						Places.set(i, Places.get(i).split("\n")[0]);
 						if (location != null && order.isChecked()) {
 							Places.set(i, Places.get(i).split("\r")[1]);
 						}
-						latitudes_search.add(Double.parseDouble(place
+						latitudes_search.add(Double.parseDouble(filter.get(i)
 								.split("\"coordinates\":\\[")[1]
 								.split(",")[1]
 								.split("]")[0]));
-						longitudes_search.add(Double.parseDouble(place
+						longitudes_search.add(Double.parseDouble(filter.get(i)
 								.split("\"coordinates\":\\[")[1]
 								.split(",")[0]));
 						i++;
 					}
 				} else {
 					int i = 0;
-					for (String place : Places) {//TODO
+					for (String place : Places) {
 						Places.set(i, Places.get(i).split("\n")[0]);
 						Places.set(i, Places.get(i).split("\r")[1]);
 						i++;
 					}
 					Collections.sort(Places);
 					i = 0;
-					for (String place : Places) {//TODO
-						latitudes_search.add(Double.parseDouble(place
+					for (String place : Places) {
+						latitudes_search.add(Double.parseDouble(filter.get(i)
 								.split("\"coordinates\":\\[")[1]
 								.split(",")[1]
 								.split("]")[0]));
-						longitudes_search.add(Double.parseDouble(place
+						longitudes_search.add(Double.parseDouble(filter.get(i)
 								.split("\"coordinates\":\\[")[1]
 								.split(",")[0]));
 						i++;
