@@ -17,5 +17,4 @@ move h2oapp
 
 path_old=$(pwd)
 cd $path
-md5sum *.apk | tee $path/checksum.md5
-cd ..
+md5sum *.apk | tee checksum.md5

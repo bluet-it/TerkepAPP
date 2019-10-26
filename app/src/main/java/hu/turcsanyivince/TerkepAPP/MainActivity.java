@@ -16,6 +16,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.BottomNavigationView;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
@@ -133,7 +134,6 @@ public class MainActivity extends AppCompatActivity implements
 	Point location = null;
 	double lastLat = 0;
 	double lastLon = 0;
-	FeatureCollection polygon;
 	String selected_json = "";
 	String geoJson = "";
 	Items adapter;
@@ -142,6 +142,457 @@ public class MainActivity extends AppCompatActivity implements
 	Toast onBackPressedToast;
 	// Create the Handler object (on the main thread by default)
 	Handler handler = new Handler();
+	Thread sort = new Thread(() -> {//TODO
+		try {
+			Switch order = findViewById(R.id.order);
+			if (mapboxMap.getLocationComponent().getLastKnownLocation() != null) {
+				location = Point.fromLngLat(
+						mapboxMap.getLocationComponent().getLastKnownLocation().getLongitude(),
+						mapboxMap.getLocationComponent().getLastKnownLocation().getLatitude());
+				order.setVisibility(View.VISIBLE);
+			} else {
+				order.setVisibility(View.GONE);
+			}
+
+			FeatureCollection featureCollection = FeatureCollection.fromJson(geoJson);
+
+			ArrayList<String> Places = new ArrayList<>();
+
+			ArrayList<Double> lats = new ArrayList<>();
+			ArrayList<Double> lons = new ArrayList<>();
+			ArrayList<String> data_json = new ArrayList<>();
+
+			int i = 0;
+			for (Feature singleFeature : featureCollection.features()) {
+				if (singleFeature.getStringProperty(PROPERTY_NAME) != null) {
+					String place = "";
+					if (location != null && order.isChecked()) {
+						double distance = new LatLng(location.latitude(), location.longitude()).distanceTo(
+								new LatLng(Double.parseDouble(singleFeature.toJson()
+										.split("\"coordinates\":\\[")[1]
+										.split(",")[1]
+										.split("]")[0]),
+										Double.parseDouble(singleFeature.toJson()
+												.split("\"coordinates\":\\[")[1]
+												.split(",")[0])));
+						if (distance > Integer.MAX_VALUE) {
+							distance = Integer.MAX_VALUE;
+						}
+						place += distance;
+						place += "\r";
+					}
+					place += singleFeature.getStringProperty(PROPERTY_NAME);
+					if (!Objects.equals(singleFeature.getStringProperty("addr:postcode"), null)) {
+						place += " (" + singleFeature.getStringProperty("addr:postcode") + " ";
+					}
+					if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+						place += singleFeature.getStringProperty("addr:city");
+					}
+					if (!Objects.equals(singleFeature.getStringProperty("addr:street"), null)) {
+						place += ", " + singleFeature.getStringProperty("addr:street");
+						if (!Objects.equals(singleFeature.getStringProperty("addr:housenumber"), null)) {
+							place += " " + singleFeature.getStringProperty("addr:housenumber") + ".";
+						}
+					}
+					if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+						place += ")";
+					}
+					if (location != null) {
+						double distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
+								new LatLng(Double.parseDouble(singleFeature.toJson()
+										.split("\"coordinates\":\\[")[1]
+										.split(",")[1]
+										.split("]")[0]),
+										Double.parseDouble(((singleFeature.toJson()
+												.split("\"coordinates\":\\[")[1]
+												.split(",")[0]))))));
+						if (!(distance > Integer.MAX_VALUE)) {
+							place += " (";
+							place += Math.round(distance);
+							place += " m)";
+						}
+					}
+					Places.add(place + "\n" + i);
+
+
+					lats.add(Double.parseDouble(singleFeature.toJson()
+							.split("\"coordinates\":\\[")[1]
+							.split(",")[1]
+							.split("]")[0]));
+					lons.add(Double.parseDouble(singleFeature.toJson()
+							.split("\"coordinates\":\\[")[1]
+							.split(",")[0]));
+					data_json.add(singleFeature.toJson());
+					i++;
+				}
+			}
+			if (location != null && order.isChecked()) {
+				Collections.sort(Places, NumberAwareStringComparator.INSTANCE);
+			} else {
+				Collections.sort(Places);
+			}
+
+			latitudes = new ArrayList<Double>();
+			longitudes = new ArrayList<Double>();
+
+			i = 0;
+			for (String place : Places) {
+				int position = Integer.parseInt(Places.get(i).split("\n")[1]);
+				Places.set(i, Places.get(i).split("\n")[0]);
+				if (location != null && order.isChecked()) {
+					Places.set(i, Places.get(i).split("\r")[1]);
+				}
+				latitudes.add(lats.get(position));
+				longitudes.add(lons.get(position));
+				json.add(data_json.get(position));
+				i++;
+			}
+
+			runOnUiThread(() -> {
+				FillList(Places);
+			});
+		} catch (Exception e) {
+
+		}
+	});
+	Thread Filter = new Thread(() -> {
+		//category
+		ArrayList<String> temp_json = new ArrayList<>();
+		Switch order = findViewById(R.id.order);
+
+		String s = ((Spinner) findViewById(R.id.filter)).getSelectedItem().toString();
+
+		if (s.equals(getResources().getString(R.string.all))) {
+			temp_json = json;
+		} else {
+			String[] keyValue = keyValueCategory(s);
+			String key = keyValue[0];
+			String value = keyValue[1];
+
+			if (mapboxMap.getLocationComponent().getLastKnownLocation() != null) {
+				location = Point.fromLngLat(
+						mapboxMap.getLocationComponent().getLastKnownLocation().getLongitude(),
+						mapboxMap.getLocationComponent().getLastKnownLocation().getLatitude());
+				order.setVisibility(View.VISIBLE);
+			} else {
+				order.setVisibility(View.GONE);
+			}
+			boolean found = false;
+			latitudes_search = new ArrayList<>();
+			longitudes_search = new ArrayList<>();
+
+			for (String object : (ArrayList<String>) json.clone()) {
+				try {
+					Feature singleFeature = Feature.fromJson(object);
+
+					double distance = new LatLng(location.latitude(), location.longitude()).distanceTo(
+							new LatLng(Double.parseDouble(singleFeature.toJson()
+									.split("\"coordinates\":\\[")[1]
+									.split(",")[1]
+									.split("]")[0]),
+									Double.parseDouble(singleFeature.toJson()
+											.split("\"coordinates\":\\[")[1]
+											.split(",")[0])));
+					if (distance > Integer.MAX_VALUE) {
+						distance = Integer.MAX_VALUE;
+					}
+				/*String find = object.split("\"" + key + "\":\"")[1].split("\"")[0];
+
+				String tag = object.split("\"" + key + "\":\"")[1].split("\"")[0];*/
+					try {
+						if (object.split("\"" + key + "\":\"")[1].split("\"")[0]
+								.equals(value) ||
+								(key.contains("diet:") &&
+										object.split("\"" + key + "\":\"")[1].split("\"")[0]
+												.equals("only"))) {
+							if (!temp_json.contains(object)) {
+								temp_json.add(object);
+							} else {
+								break;
+							}
+							latitudes_search.add(Double.parseDouble(object
+									.split("\"coordinates\":\\[")[1]
+									.split(",")[1]
+									.split("]")[0]));
+							longitudes_search.add(Double.parseDouble(object
+									.split("\"coordinates\":\\[")[1]
+									.split(",")[0]));
+							found = true;
+						}
+					} catch (java.lang.ArrayIndexOutOfBoundsException e) {
+
+					}
+				} catch (Exception e) {
+				}
+			}
+		}
+
+		//filter
+
+		ArrayList<String> Places = new ArrayList<>();
+		ArrayList<String> filter = new ArrayList<>();
+		latitudes_search = new ArrayList<>();
+		longitudes_search = new ArrayList<>();
+		if (mapboxMap.getLocationComponent().getLastKnownLocation() != null) {
+			location = Point.fromLngLat(
+					mapboxMap.getLocationComponent().getLastKnownLocation().getLongitude(),
+					mapboxMap.getLocationComponent().getLastKnownLocation().getLatitude());
+			order.setVisibility(View.VISIBLE);
+		} else {
+			order.setVisibility(View.GONE);
+		}
+
+		if (location == null){
+			Places = new ArrayList<>();
+		} else if (((EditText) findViewById(R.id.distance)).getText().toString().equals("")) {
+			Places=temp_json;
+			if(s.equals(getResources().getString(R.string.all))){
+				Places = null;
+			}
+		} else {
+			double query = Double.parseDouble(((EditText) findViewById(R.id.distance)).getText().toString()) * 1000;
+			for (int i = 0; i < temp_json.size() - 1; i++) {
+				String object = temp_json.get(i);
+				try {
+					Feature singleFeature = Feature.fromJson(object);
+
+					double distance = new LatLng(location.latitude(), location.longitude()).distanceTo(
+							new LatLng(Double.parseDouble(singleFeature.toJson()
+									.split("\"coordinates\":\\[")[1]
+									.split(",")[1]
+									.split("]")[0]),
+									Double.parseDouble(singleFeature.toJson()
+											.split("\"coordinates\":\\[")[1]
+											.split(",")[0])));
+					if (distance > Integer.MAX_VALUE) {
+						distance = Integer.MAX_VALUE;
+					}
+					if (distance < query) {
+						String place = nameJson(singleFeature);
+						place += distance;
+						place += "\r";
+						place += singleFeature.getStringProperty(PROPERTY_NAME);
+						if (!Objects.equals(singleFeature.getStringProperty("addr:postcode"), null)) {
+							place += " (" + singleFeature.getStringProperty("addr:postcode") + " ";
+						}
+						if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+							place += singleFeature.getStringProperty("addr:city");
+						}
+						if (!Objects.equals(singleFeature.getStringProperty("addr:street"), null)) {
+							place += ", " + singleFeature.getStringProperty("addr:street");
+							if (!Objects.equals(singleFeature.getStringProperty("addr:housenumber"), null)) {
+								place += " " + singleFeature.getStringProperty("addr:housenumber") + ".";
+							}
+						}
+						if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+							place += ")";
+						}
+						distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
+								new LatLng(Double.parseDouble(singleFeature.toJson()
+										.split("\"coordinates\":\\[")[1]
+										.split(",")[1]
+										.split("]")[0]),
+										Double.parseDouble(((singleFeature.toJson()
+												.split("\"coordinates\":\\[")[1]
+												.split(",")[0]))))));
+						if (!(distance > Integer.MAX_VALUE)) {
+							place += " (";
+							place += Math.round(distance);
+							place += " m)";
+						}
+						latitudes_search.add(Double.parseDouble(object
+								.split("\"coordinates\":\\[")[1]
+								.split(",")[1]
+								.split("]")[0]));
+						longitudes_search.add(Double.parseDouble(object
+								.split("\"coordinates\":\\[")[1]
+								.split(",")[0]));
+						if (!Places.contains(place)) {
+							Places.add(place);
+							filter.add(object);
+						} else {
+							break;
+						}
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		if (location != null && order.isChecked()) {
+			Collections.sort(Places, NumberAwareStringComparator.INSTANCE);
+			int i = 0;
+			for (String place : Places) {
+				Places.set(i, Places.get(i).split("\n")[0]);
+				if (location != null && order.isChecked()) {
+					Places.set(i, Places.get(i).split("\r")[1]);
+				}
+				latitudes_search.add(Double.parseDouble(filter.get(i)
+						.split("\"coordinates\":\\[")[1]
+						.split(",")[1]
+						.split("]")[0]));
+				longitudes_search.add(Double.parseDouble(filter.get(i)
+						.split("\"coordinates\":\\[")[1]
+						.split(",")[0]));
+				i++;
+			}
+		} else {
+			int i = 0;
+			for (String ignored : Places) {
+				Places.set(i, Places.get(i).split("\n")[0]);
+				Places.set(i, Places.get(i).split("\r")[1]);
+				i++;
+			}
+			Collections.sort(Places);
+			i = 0;
+			for (String ignored : Places) {
+				latitudes_search.add(Double.parseDouble(filter.get(i)
+						.split("\"coordinates\":\\[")[1]
+						.split(",")[1]
+						.split("]")[0]));
+				longitudes_search.add(Double.parseDouble(filter.get(i)
+						.split("\"coordinates\":\\[")[1]
+						.split(",")[0]));
+				i++;
+			}
+		}
+
+
+		// set up the RecyclerView
+		RecyclerView recyclerView = findViewById(R.id.search_results);
+		recyclerView.setLayoutManager(new LinearLayoutManager(this));
+		adapter_search = new Items(this, Places);
+		adapter_search.setClickListener(this);
+		recyclerView.setAdapter(adapter_search);
+		findViewById(R.id.search_results).setVisibility(View.VISIBLE);
+		findViewById(R.id.recyclerView).setVisibility(View.GONE);
+		findViewById(R.id.center_map).setVisibility(View.VISIBLE);
+		findViewById(R.id.compass_map).setVisibility(View.VISIBLE);
+		View view = this.getCurrentFocus();
+		if (view != null) {
+			InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+			imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+		}
+	});
+	Thread Refresh = new Thread(() -> {
+		Switch update = findViewById(R.id.auto);
+		if (update.isChecked()) {
+			try {
+				Switch order = findViewById(R.id.order);
+				Button button = findViewById(R.id.search_distance);
+				if (mapboxMap.getLocationComponent().getLastKnownLocation() != null) {
+					location = Point.fromLngLat(
+							mapboxMap.getLocationComponent().getLastKnownLocation().getLongitude(),
+							mapboxMap.getLocationComponent().getLastKnownLocation().getLatitude());
+					order.setVisibility(View.VISIBLE);
+					button.setVisibility(View.VISIBLE);
+				} else {
+					order.setVisibility(View.GONE);
+					button.setVisibility(View.GONE);
+				}
+
+				FeatureCollection featureCollection = FeatureCollection.fromJson(geoJson);
+
+				ArrayList<String> Places = new ArrayList<>();
+
+				ArrayList<Double> lats = new ArrayList<>();
+				ArrayList<Double> lons = new ArrayList<>();
+				ArrayList<String> data_json = new ArrayList<>();
+
+				int i = 0;
+				for (Feature singleFeature : featureCollection.features()) {
+					if (singleFeature.getStringProperty(PROPERTY_NAME) != null) {
+						String place = "";
+						if (location != null && order.isChecked()) {
+							double distance = new LatLng(location.latitude(), location.longitude()).distanceTo(
+									new LatLng(Double.parseDouble(singleFeature.toJson()
+											.split("\"coordinates\":\\[")[1]
+											.split(",")[1]
+											.split("]")[0]),
+											Double.parseDouble(singleFeature.toJson()
+													.split("\"coordinates\":\\[")[1]
+													.split(",")[0])));
+							if (distance > Integer.MAX_VALUE) {
+								distance = Integer.MAX_VALUE;
+							}
+							place += distance;
+							place += "\r";
+						}
+						place += singleFeature.getStringProperty(PROPERTY_NAME);
+						if (!Objects.equals(singleFeature.getStringProperty("addr:postcode"), null)) {
+							place += " (" + singleFeature.getStringProperty("addr:postcode") + " ";
+						}
+						if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+							place += singleFeature.getStringProperty("addr:city");
+						}
+						if (!Objects.equals(singleFeature.getStringProperty("addr:street"), null)) {
+							place += ", " + singleFeature.getStringProperty("addr:street");
+							if (!Objects.equals(singleFeature.getStringProperty("addr:housenumber"), null)) {
+								place += " " + singleFeature.getStringProperty("addr:housenumber") + ".";
+							}
+						}
+						if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+							place += ")";
+						}
+						if (location != null) {
+							double distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
+									new LatLng(Double.parseDouble(singleFeature.toJson()
+											.split("\"coordinates\":\\[")[1]
+											.split(",")[1]
+											.split("]")[0]),
+											Double.parseDouble(((singleFeature.toJson()
+													.split("\"coordinates\":\\[")[1]
+													.split(",")[0]))))));
+							if (!(distance > Integer.MAX_VALUE)) {
+								place += " (";
+								place += Math.round(distance);
+								place += " m)";
+							}
+						}
+						Places.add(place + "\n" + i);
+
+
+						lats.add(Double.parseDouble(singleFeature.toJson()
+								.split("\"coordinates\":\\[")[1]
+								.split(",")[1]
+								.split("]")[0]));
+						lons.add(Double.parseDouble(singleFeature.toJson()
+								.split("\"coordinates\":\\[")[1]
+								.split(",")[0]));
+						data_json.add(singleFeature.toJson());
+						i++;
+					}
+				}
+				if (location != null && order.isChecked()) {
+					Collections.sort(Places, NumberAwareStringComparator.INSTANCE);
+				} else {
+					Collections.sort(Places);
+				}
+
+				latitudes = new ArrayList<Double>();
+				longitudes = new ArrayList<Double>();
+
+				i = 0;
+				for (String place : Places) {
+					int position = Integer.parseInt(Places.get(i).split("\n")[1]);
+					Places.set(i, Places.get(i).split("\n")[0]);
+					if (location != null && order.isChecked()) {
+						Places.set(i, Places.get(i).split("\r")[1]);
+					}
+					latitudes.add(lats.get(position));
+					longitudes.add(lons.get(position));
+					json.add(data_json.get(position));
+					i++;
+				}
+				runOnUiThread(() -> {
+					FillList(Places);
+				});
+			} catch (Exception e) {
+
+			}
+		}
+	});
 	private GeoJsonSource source;
 	private FeatureCollection featureCollection;
 	//private MapView mapView;
@@ -207,126 +658,45 @@ public class MainActivity extends AppCompatActivity implements
 		t.scheduleAtFixedRate(new TimerTask() {
 			@Override
 			public void run () {
-				{
-					Switch update = findViewById(R.id.auto);
-					if (update.isChecked()) {
-						try {
-							Switch order = findViewById(R.id.order);
-							Button button = findViewById(R.id.search_distance);
-							if (mapboxMap.getLocationComponent().getLastKnownLocation() != null) {
-								location = Point.fromLngLat(
-										mapboxMap.getLocationComponent().getLastKnownLocation().getLongitude(),
-										mapboxMap.getLocationComponent().getLastKnownLocation().getLatitude());
-								order.setVisibility(View.VISIBLE);
-								button.setVisibility(View.VISIBLE);
-							} else {
-								order.setVisibility(View.GONE);
-								button.setVisibility(View.GONE);
-							}
-
-							FeatureCollection featureCollection = FeatureCollection.fromJson(geoJson);
-
-							ArrayList<String> Places = new ArrayList<>();
-
-							ArrayList<Double> lats = new ArrayList<>();
-							ArrayList<Double> lons = new ArrayList<>();
-							ArrayList<String> data_json = new ArrayList<>();
-
-							int i = 0;
-							for (Feature singleFeature : featureCollection.features()) {
-								if (singleFeature.getStringProperty(PROPERTY_NAME) != null) {
-									String place = "";
-									if (location != null && order.isChecked()) {
-										double distance = new LatLng(location.latitude(), location.longitude()).distanceTo(
-												new LatLng(Double.parseDouble(singleFeature.toJson()
-														.split("\"coordinates\":\\[")[1]
-														.split(",")[1]
-														.split("]")[0]),
-														Double.parseDouble(singleFeature.toJson()
-																.split("\"coordinates\":\\[")[1]
-																.split(",")[0])));
-										if (distance > Integer.MAX_VALUE) {
-											distance = Integer.MAX_VALUE;
-										}
-										place += distance;
-										place += "\r";
-									}
-									place += singleFeature.getStringProperty(PROPERTY_NAME);
-									if (!Objects.equals(singleFeature.getStringProperty("addr:postcode"), null)) {
-										place += " (" + singleFeature.getStringProperty("addr:postcode") + " ";
-									}
-									if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
-										place += singleFeature.getStringProperty("addr:city");
-									}
-									if (!Objects.equals(singleFeature.getStringProperty("addr:street"), null)) {
-										place += ", " + singleFeature.getStringProperty("addr:street");
-										if (!Objects.equals(singleFeature.getStringProperty("addr:housenumber"), null)) {
-											place += " " + singleFeature.getStringProperty("addr:housenumber") + ".";
-										}
-									}
-									if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
-										place += ")";
-									}
-									if (location != null) {
-										double distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
-												new LatLng(Double.parseDouble(singleFeature.toJson()
-														.split("\"coordinates\":\\[")[1]
-														.split(",")[1]
-														.split("]")[0]),
-														Double.parseDouble(((singleFeature.toJson()
-																.split("\"coordinates\":\\[")[1]
-																.split(",")[0]))))));
-										if (!(distance > Integer.MAX_VALUE)) {
-											place += " (";
-											place += Math.round(distance);
-											place += " m)";
-										}
-									}
-									Places.add(place + "\n" + i);
-
-
-									lats.add(Double.parseDouble(singleFeature.toJson()
-											.split("\"coordinates\":\\[")[1]
-											.split(",")[1]
-											.split("]")[0]));
-									lons.add(Double.parseDouble(singleFeature.toJson()
-											.split("\"coordinates\":\\[")[1]
-											.split(",")[0]));
-									data_json.add(singleFeature.toJson());
-									i++;
-								}
-							}
-							if (location != null && order.isChecked()) {
-								Collections.sort(Places, NumberAwareStringComparator.INSTANCE);
-							} else {
-								Collections.sort(Places);
-							}
-
-							latitudes = new ArrayList<Double>();
-							longitudes = new ArrayList<Double>();
-
-							i = 0;
-							for (String place : Places) {
-								int position = Integer.parseInt(Places.get(i).split("\n")[1]);
-								Places.set(i, Places.get(i).split("\n")[0]);
-								if (location != null && order.isChecked()) {
-									Places.set(i, Places.get(i).split("\r")[1]);
-								}
-								latitudes.add(lats.get(position));
-								longitudes.add(lons.get(position));
-								json.add(data_json.get(position));
-								i++;
-							}
-							runOnUiThread(() -> {
-								FillList(Places);
-							});
-						} catch (Exception e) {
-
-						}
-					}
-				}
+				Refresh.run();
 			}
 		}, 0, 10000);
+	}
+
+	String nameJson(Feature singleFeature){
+		double distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
+				new LatLng(Double.parseDouble(singleFeature.toJson()
+						.split("\"coordinates\":\\[")[1]
+						.split(",")[1]
+						.split("]")[0]),
+						Double.parseDouble(((singleFeature.toJson()
+								.split("\"coordinates\":\\[")[1]
+								.split(",")[0]))))));
+		String place = "";
+		place += distance;
+		place += "\r";
+		place += singleFeature.getStringProperty(PROPERTY_NAME);
+		if (!Objects.equals(singleFeature.getStringProperty("addr:postcode"), null)) {
+			place += " (" + singleFeature.getStringProperty("addr:postcode") + " ";
+		}
+		if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+			place += singleFeature.getStringProperty("addr:city");
+		}
+		if (!Objects.equals(singleFeature.getStringProperty("addr:street"), null)) {
+			place += ", " + singleFeature.getStringProperty("addr:street");
+			if (!Objects.equals(singleFeature.getStringProperty("addr:housenumber"), null)) {
+				place += " " + singleFeature.getStringProperty("addr:housenumber") + ".";
+			}
+		}
+		if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+			place += ")";
+		}
+		if (!(distance > Integer.MAX_VALUE)) {
+			place += " (";
+			place += Math.round(distance);
+			place += " m)";
+		}
+		return place;
 	}
 
 	@Override
@@ -380,81 +750,12 @@ public class MainActivity extends AppCompatActivity implements
 			latitudes_search = new ArrayList<>();
 			longitudes_search = new ArrayList<>();
 
-			EditText input = (EditText) findViewById(R.id.search);
+			EditText input = findViewById(R.id.search);
 			String query = input.getText().toString();
-			String key = "";
-			String value = "";
-			if (getResources().getString(R.string.all).contains(query)) {
-			} else if (getResources().getString(R.string.training).contains(query)) {
-				key = "animal_training";
-				value = "dog";
-			} else if (getResources().getString(R.string.access).contains(query)) {
-				key = "dog";
-				value = "yes";
-			} else if (getResources().getString(R.string.vet).contains(query)) {
-				key = "amenity";
-				value = "veterinary";
-			} else if (getResources().getString(R.string.grooming).contains(query)) {
-				key = "shop";
-				value = "pet_grooming";
-			} else if (getResources().getString(R.string.shop).contains(query)) {
-				key = "shop";
-				value = "pet";
-			} else if (getResources().getString(R.string.trash).contains(query)) {
-				key = "waste";
-				value = "dog_excrement";
-			} else if (getResources().getString(R.string.museum).contains(query)) {
-				key = "tourism";
-				value = "museum";
-			} else if (getResources().getString(R.string.gallery).contains(query)) {
-				key = "tourism";
-				value = "gallery";
-			} else if (getResources().getString(R.string.archive).contains(query)) {
-				key = "amenity";
-				value = "archive";
-			} else if (getResources().getString(R.string.theatre).contains(query)) {
-				key = "amenity";
-				value = "theatre";
-			} else if (getResources().getString(R.string.bookshop).contains(query)) {
-				key = "shop";
-				value = "books";
-			} else if (getResources().getString(R.string.library).contains(query)) {
-				key = "amenity";
-				value = "library";
-			} else if (getResources().getString(R.string.concerthall).contains(query)) {
-				key = "amenity";
-				value = "concert_hall";
-			} else if (getResources().getString(R.string.accessible).contains(query)) {
-				key = "wheelchair";
-				value = "yes";
-			} else if (getResources().getString(R.string.limited).contains(query)) {
-				key = "wheelchair";
-				value = "limited";
-			} else if (getResources().getString(R.string.designated).contains(query)) {
-				key = "wheelchair";
-				value = "designated";
-			} else if (getResources().getString(R.string.water).contains(query)) {
-				key = "amenity";
-				value = "drinking_water";
-			} else if (getResources().getString(R.string.toilet).contains(query)) {
-				key = "amenity";
-				value = "toilets";
-			} else if (getResources().getString(R.string.vegetarian).contains(query)) {
-				key = "diet:vegetarian";
-				value = "yes";
-			} else if (getResources().getString(R.string.vegan).contains(query)) {
-				key = "diet:vegan";
-				value = "yes";
-			} else if (getResources().getString(R.string.glutenfree).contains(query)) {
-				key = "diet:gluten_free";
-				value = "yes";
-			} else if (getResources().getString(R.string.dairyfree).contains(query)) {
-				key = "diet:dairy_free";
-				value = "yes";
-			} else if (getResources().getString(R.string.lactosefree).contains(query)) {
-				key = "diet:lactose_free";
-				value = "yes";
-			}
+
+			String[] keyValue = keyValueCategory(query);
+			String key = keyValue[0];
+			String value = keyValue[1];
 
 			for (int i = 0; i < json.size() - 1; i++) {
 				String object = json.get(i);
@@ -532,7 +833,7 @@ public class MainActivity extends AppCompatActivity implements
 								.split(",")[0]));
 						if (!Places.contains(place)) {
 							Places.add(place);
-						}else {
+						} else {
 							break;
 						}
 					}
@@ -544,7 +845,7 @@ public class MainActivity extends AppCompatActivity implements
 			if (location != null && order.isChecked()) {
 				Collections.sort(Places, NumberAwareStringComparator.INSTANCE);
 				int i = 0;
-				for (String place : Places) {//TODO
+				for (String place : Places) {
 					int position = Integer.parseInt(Places.get(i).split("\n")[1]);
 					Places.set(i, Places.get(i).split("\n")[0]);
 					if (location != null && order.isChecked()) {
@@ -601,147 +902,7 @@ public class MainActivity extends AppCompatActivity implements
 			mapIntent.setPackage("com.google.android.apps.maps");
 			startActivity(mapIntent);
 		} else if (v == findViewById(R.id.search_distance)) {
-			new Thread(() -> {
-				ArrayList<String> Places = new ArrayList<>();
-				ArrayList<String> filter = new ArrayList<>();
-				latitudes_search = new ArrayList<>();
-				longitudes_search = new ArrayList<>();
-				Switch order = findViewById(R.id.order);
-				if (mapboxMap.getLocationComponent().getLastKnownLocation() != null) {
-					location = Point.fromLngLat(
-							mapboxMap.getLocationComponent().getLastKnownLocation().getLongitude(),
-							mapboxMap.getLocationComponent().getLastKnownLocation().getLatitude());
-					order.setVisibility(View.VISIBLE);
-				} else {
-					order.setVisibility(View.GONE);
-				}
-
-				if (location != null) {
-					double query = Double.parseDouble(((EditText) findViewById(R.id.distance)).getText().toString()) * 1000;
-					for (int i = 0; i < json.size() - 1; i++) {
-						String object = json.get(i);
-						try {
-							Feature singleFeature = Feature.fromJson(object);
-
-							double distance = new LatLng(location.latitude(), location.longitude()).distanceTo(
-									new LatLng(Double.parseDouble(singleFeature.toJson()
-											.split("\"coordinates\":\\[")[1]
-											.split(",")[1]
-											.split("]")[0]),
-											Double.parseDouble(singleFeature.toJson()
-													.split("\"coordinates\":\\[")[1]
-													.split(",")[0])));
-							if (distance > Integer.MAX_VALUE) {
-								distance = Integer.MAX_VALUE;
-							}
-							if (distance < query) {
-								String place = "";
-								place += distance;
-								place += "\r";
-								place += singleFeature.getStringProperty(PROPERTY_NAME);
-								if (!Objects.equals(singleFeature.getStringProperty("addr:postcode"), null)) {
-									place += " (" + singleFeature.getStringProperty("addr:postcode") + " ";
-								}
-								if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
-									place += singleFeature.getStringProperty("addr:city");
-								}
-								if (!Objects.equals(singleFeature.getStringProperty("addr:street"), null)) {
-									place += ", " + singleFeature.getStringProperty("addr:street");
-									if (!Objects.equals(singleFeature.getStringProperty("addr:housenumber"), null)) {
-										place += " " + singleFeature.getStringProperty("addr:housenumber") + ".";
-									}
-								}
-								if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
-									place += ")";
-								}
-								distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
-										new LatLng(Double.parseDouble(singleFeature.toJson()
-												.split("\"coordinates\":\\[")[1]
-												.split(",")[1]
-												.split("]")[0]),
-												Double.parseDouble(((singleFeature.toJson()
-														.split("\"coordinates\":\\[")[1]
-														.split(",")[0]))))));
-								if (!(distance > Integer.MAX_VALUE)) {
-									place += " (";
-									place += Math.round(distance);
-									place += " m)";
-								}
-								latitudes_search.add(Double.parseDouble(object
-										.split("\"coordinates\":\\[")[1]
-										.split(",")[1]
-										.split("]")[0]));
-								longitudes_search.add(Double.parseDouble(object
-										.split("\"coordinates\":\\[")[1]
-										.split(",")[0]));
-								if (!Places.contains(place)) {
-									Places.add(place);
-									filter.add(object);
-								}else{
-									break;
-								}
-							}
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-					}
-				}
-
-				if (location != null && order.isChecked()) {
-					Collections.sort(Places, NumberAwareStringComparator.INSTANCE);
-					int i = 0;
-					for (String place : Places) {
-						Places.set(i, Places.get(i).split("\n")[0]);
-						if (location != null && order.isChecked()) {
-							Places.set(i, Places.get(i).split("\r")[1]);
-						}
-						latitudes_search.add(Double.parseDouble(filter.get(i)
-								.split("\"coordinates\":\\[")[1]
-								.split(",")[1]
-								.split("]")[0]));
-						longitudes_search.add(Double.parseDouble(filter.get(i)
-								.split("\"coordinates\":\\[")[1]
-								.split(",")[0]));
-						i++;
-					}
-				} else {
-					int i = 0;
-					for (String place : Places) {
-						Places.set(i, Places.get(i).split("\n")[0]);
-						Places.set(i, Places.get(i).split("\r")[1]);
-						i++;
-					}
-					Collections.sort(Places);
-					i = 0;
-					for (String place : Places) {
-						latitudes_search.add(Double.parseDouble(filter.get(i)
-								.split("\"coordinates\":\\[")[1]
-								.split(",")[1]
-								.split("]")[0]));
-						longitudes_search.add(Double.parseDouble(filter.get(i)
-								.split("\"coordinates\":\\[")[1]
-								.split(",")[0]));
-						i++;
-					}
-				}
-
-
-				// set up the RecyclerView
-				RecyclerView recyclerView = findViewById(R.id.search_results);
-				recyclerView.setLayoutManager(new LinearLayoutManager(this));
-				adapter_search = new Items(this, Places);
-				adapter_search.setClickListener(this);
-				recyclerView.setAdapter(adapter_search);
-				findViewById(R.id.search_results).setVisibility(View.VISIBLE);
-				findViewById(R.id.recyclerView).setVisibility(View.GONE);
-				findViewById(R.id.center_map).setVisibility(View.VISIBLE);
-				findViewById(R.id.compass_map).setVisibility(View.VISIBLE);
-				View view = this.getCurrentFocus();
-				if (view != null) {
-					InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-					imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-				}
-			}).run();
+			Filter.run();
 		}
 	}
 
@@ -776,91 +937,124 @@ public class MainActivity extends AppCompatActivity implements
 
 	}
 
-	public void onItemSelected (AdapterView<?> parent, View view,
-	                            int pos, long id) {
-		String key = "";//TODO: add address and distance
+	String[] keyValueCategory (String category) {
+
+		String key = "";
 		String value = "";
-		String s = parent.getSelectedItem().toString();
-		if (s.equals(getResources().getString(R.string.all))) {
-		} else if (s.equals(getResources().getString(R.string.all))) {
+		if (category.equals(getResources().getString(R.string.all))) {
+		} else if (category.equals(getResources().getString(R.string.all))) {
 			key = "animal_training";
 			value = "dog";
-		} else if (s.equals(getResources().getString(R.string.access))) {
+		} else if (category.equals(getResources().getString(R.string.access))) {
 			key = "dog";
 			value = "yes";
-		} else if (s.equals(getResources().getString(R.string.vet))) {
+		} else if (category.equals(getResources().getString(R.string.vet))) {
 			key = "amenity";
 			value = "veterinary";
-		} else if (s.equals(getResources().getString(R.string.grooming))) {
+		} else if (category.equals(getResources().getString(R.string.grooming))) {
 			key = "shop";
 			value = "pet_grooming";
-		} else if (s.equals(getResources().getString(R.string.shop))) {
+		} else if (category.equals(getResources().getString(R.string.shop))) {
 			key = "shop";
 			value = "pet";
-		} else if (s.equals(getResources().getString(R.string.trash))) {
+		} else if (category.equals(getResources().getString(R.string.trash))) {
 			key = "waste";
 			value = "dog_excrement";
-		} else if (s.equals(getResources().getString(R.string.museum))) {
+		} else if (category.equals(getResources().getString(R.string.museum))) {
 			key = "tourism";
 			value = "museum";
-		} else if (s.equals(getResources().getString(R.string.gallery))) {
+		} else if (category.equals(getResources().getString(R.string.gallery))) {
 			key = "tourism";
 			value = "gallery";
-		} else if (s.equals(getResources().getString(R.string.archive))) {
+		} else if (category.equals(getResources().getString(R.string.archive))) {
 			key = "amenity";
 			value = "archive";
-		} else if (s.equals(getResources().getString(R.string.theatre))) {
+		} else if (category.equals(getResources().getString(R.string.theatre))) {
 			key = "amenity";
 			value = "theatre";
-		} else if (s.equals(getResources().getString(R.string.bookshop))) {
+		} else if (category.equals(getResources().getString(R.string.bookshop))) {
 			key = "shop";
 			value = "books";
-		} else if (s.equals(getResources().getString(R.string.library))) {
+		} else if (category.equals(getResources().getString(R.string.library))) {
 			key = "amenity";
 			value = "library";
-		} else if (s.equals(getResources().getString(R.string.concerthall))) {
+		} else if (category.equals(getResources().getString(R.string.concerthall))) {
 			key = "amenity";
 			value = "concert_hall";
-		} else if (s.equals(getResources().getString(R.string.accessible))) {
+		} else if (category.equals(getResources().getString(R.string.accessible))) {
 			key = "wheelchair";
 			value = "yes";
-		} else if (s.equals(getResources().getString(R.string.limited))) {
+		} else if (category.equals(getResources().getString(R.string.limited))) {
 			key = "wheelchair";
 			value = "limited";
-		} else if (s.equals(getResources().getString(R.string.designated))) {
+		} else if (category.equals(getResources().getString(R.string.designated))) {
 			key = "wheelchair";
 			value = "designated";
-		} else if (s.equals(getResources().getString(R.string.water))) {
+		} else if (category.equals(getResources().getString(R.string.water))) {
 			key = "amenity";
 			value = "drinking_water";
-		} else if (s.equals(getResources().getString(R.string.toilet))) {
+		} else if (category.equals(getResources().getString(R.string.toilet))) {
 			key = "amenity";
 			value = "toilets";
-		} else if (s.equals(getResources().getString(R.string.vegetarian))) {
+		} else if (category.equals(getResources().getString(R.string.vegetarian))) {
 			key = "diet:vegetarian";
 			value = "yes";
-		} else if (s.equals(getResources().getString(R.string.vegan))) {
+		} else if (category.equals(getResources().getString(R.string.vegan))) {
 			key = "diet:vegan";
 			value = "yes";
-		} else if (s.equals(getResources().getString(R.string.glutenfree))) {
+		} else if (category.equals(getResources().getString(R.string.glutenfree))) {
 			key = "diet:gluten_free";
 			value = "yes";
-		} else if (s.equals(getResources().getString(R.string.dairyfree))) {
+		} else if (category.equals(getResources().getString(R.string.dairyfree))) {
 			key = "diet:dairy_free";
 			value = "yes";
-		} else if (s.equals(getResources().getString(R.string.lactosefree))) {
+		} else if (category.equals(getResources().getString(R.string.lactosefree))) {
 			key = "diet:lactose_free";
 			value = "yes";
 		}
+		return new String[]{key, value};
+	}
 
+	public void onItemSelected (AdapterView<?> parent, View view,
+	                            int pos, long id) {
+		Filter.run();
+		/*String s = parent.getSelectedItem().toString();
+
+		String[] keyValue = keyValueCategory(s);
+		String key = keyValue[0];
+		String value = keyValue[1];
+
+		Switch order = findViewById(R.id.order);
+		if (mapboxMap.getLocationComponent().getLastKnownLocation() != null) {
+			location = Point.fromLngLat(
+					mapboxMap.getLocationComponent().getLastKnownLocation().getLongitude(),
+					mapboxMap.getLocationComponent().getLastKnownLocation().getLatitude());
+			order.setVisibility(View.VISIBLE);
+		} else {
+			order.setVisibility(View.GONE);
+		}
 		boolean found = false;
 		ArrayList<String> Places = new ArrayList<>();
+		ArrayList<String> filter = new ArrayList<>();
 		latitudes_search = new ArrayList<>();
 		longitudes_search = new ArrayList<>();
 
 		for (String object : (ArrayList<String>) json.clone()) {
 			try {
-				String find = object.split("\"" + key + "\":\"")[1].split("\"")[0];
+				Feature singleFeature = Feature.fromJson(object);
+
+				double distance = new LatLng(location.latitude(), location.longitude()).distanceTo(
+						new LatLng(Double.parseDouble(singleFeature.toJson()
+								.split("\"coordinates\":\\[")[1]
+								.split(",")[1]
+								.split("]")[0]),
+								Double.parseDouble(singleFeature.toJson()
+										.split("\"coordinates\":\\[")[1]
+										.split(",")[0])));
+				if (distance > Integer.MAX_VALUE) {
+					distance = Integer.MAX_VALUE;
+				}
+				/*String find = object.split("\"" + key + "\":\"")[1].split("\"")[0];
 
 				String tag = object.split("\"" + key + "\":\"")[1].split("\"")[0];
 				if (object.split("\"" + key + "\":\"")[1].split("\"")[0]
@@ -868,7 +1062,47 @@ public class MainActivity extends AppCompatActivity implements
 						(key.contains("diet:") &&
 								object.split("\"" + key + "\":\"")[1].split("\"")[0]
 										.equals("only"))) {
-					Places.add(object.split("\"name\":\"")[1].split("\"")[0]);
+
+					String place = "";
+					place += distance;
+					place += "\r";
+					place += singleFeature.getStringProperty(PROPERTY_NAME);
+					if (!Objects.equals(singleFeature.getStringProperty("addr:postcode"), null)) {
+						place += " (" + singleFeature.getStringProperty("addr:postcode") + " ";
+					}
+					if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+						place += singleFeature.getStringProperty("addr:city");
+					}
+					if (!Objects.equals(singleFeature.getStringProperty("addr:street"), null)) {
+						place += ", " + singleFeature.getStringProperty("addr:street");
+						if (!Objects.equals(singleFeature.getStringProperty("addr:housenumber"), null)) {
+							place += " " + singleFeature.getStringProperty("addr:housenumber") + ".";
+						}
+					}
+					if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+						place += ")";
+					}
+					distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
+							new LatLng(Double.parseDouble(singleFeature.toJson()
+									.split("\"coordinates\":\\[")[1]
+									.split(",")[1]
+									.split("]")[0]),
+									Double.parseDouble(((singleFeature.toJson()
+											.split("\"coordinates\":\\[")[1]
+											.split(",")[0]))))));
+					if (!(distance > Integer.MAX_VALUE)) {
+						place += " (";
+						place += Math.round(distance);
+						place += " m)";
+					}
+
+					//Places.add(object.split("\"name\":\"")[1].split("\"")[0]);
+					if (!Places.contains(place)) {
+						Places.add(place);
+						filter.add(object);
+					}else{
+						break;
+					}
 					latitudes_search.add(Double.parseDouble(object
 							.split("\"coordinates\":\\[")[1]
 							.split(",")[1]
@@ -882,6 +1116,43 @@ public class MainActivity extends AppCompatActivity implements
 			}
 		}
 		if (found) {
+			if (location != null && order.isChecked()) {
+				Collections.sort(Places, NumberAwareStringComparator.INSTANCE);
+				int i = 0;
+				for (String place : Places) {
+					Places.set(i, Places.get(i).split("\n")[0]);
+					if (location != null && order.isChecked()) {
+						Places.set(i, Places.get(i).split("\r")[1]);
+					}
+					latitudes_search.add(Double.parseDouble(filter.get(i)
+							.split("\"coordinates\":\\[")[1]
+							.split(",")[1]
+							.split("]")[0]));
+					longitudes_search.add(Double.parseDouble(filter.get(i)
+							.split("\"coordinates\":\\[")[1]
+							.split(",")[0]));
+					i++;
+				}
+			} else {
+				int i = 0;
+				for (String place : Places) {
+					Places.set(i, Places.get(i).split("\n")[0]);
+					Places.set(i, Places.get(i).split("\r")[1]);
+					i++;
+				}
+				Collections.sort(Places);
+				i = 0;
+				for (String place : Places) {
+					latitudes_search.add(Double.parseDouble(filter.get(i)
+							.split("\"coordinates\":\\[")[1]
+							.split(",")[1]
+							.split("]")[0]));
+					longitudes_search.add(Double.parseDouble(filter.get(i)
+							.split("\"coordinates\":\\[")[1]
+							.split(",")[0]));
+					i++;
+				}
+			}
 			// set up the RecyclerView
 			RecyclerView recyclerView = findViewById(R.id.search_results);
 			recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -890,7 +1161,7 @@ public class MainActivity extends AppCompatActivity implements
 			recyclerView.setAdapter(adapter_search);
 			findViewById(R.id.search_results).setVisibility(View.VISIBLE);
 			findViewById(R.id.recyclerView).setVisibility(View.GONE);
-		}
+		}*/
 	}
 
 	public void onNothingSelected (AdapterView<?> parent) {
@@ -1077,120 +1348,10 @@ public class MainActivity extends AppCompatActivity implements
 
 		Switch s = findViewById(R.id.order);
 
-		s.setOnCheckedChangeListener((buttonView, isChecked) ->
-				new Thread(() -> {//TODO
-					try {
-						Switch order = findViewById(R.id.order);
-						if (mapboxMap.getLocationComponent().getLastKnownLocation() != null) {
-							location = Point.fromLngLat(
-									mapboxMap.getLocationComponent().getLastKnownLocation().getLongitude(),
-									mapboxMap.getLocationComponent().getLastKnownLocation().getLatitude());
-							order.setVisibility(View.VISIBLE);
-						} else {
-							order.setVisibility(View.GONE);
-						}
-
-						FeatureCollection featureCollection = FeatureCollection.fromJson(geoJson);
-
-						ArrayList<String> Places = new ArrayList<>();
-
-						ArrayList<Double> lats = new ArrayList<>();
-						ArrayList<Double> lons = new ArrayList<>();
-						ArrayList<String> data_json = new ArrayList<>();
-
-						int i = 0;
-						for (Feature singleFeature : featureCollection.features()) {
-							if (singleFeature.getStringProperty(PROPERTY_NAME) != null) {
-								String place = "";
-								if (location != null && order.isChecked()) {
-									double distance = new LatLng(location.latitude(), location.longitude()).distanceTo(
-											new LatLng(Double.parseDouble(singleFeature.toJson()
-													.split("\"coordinates\":\\[")[1]
-													.split(",")[1]
-													.split("]")[0]),
-													Double.parseDouble(singleFeature.toJson()
-															.split("\"coordinates\":\\[")[1]
-															.split(",")[0])));
-									if (distance > Integer.MAX_VALUE) {
-										distance = Integer.MAX_VALUE;
-									}
-									place += distance;
-									place += "\r";
-								}
-								place += singleFeature.getStringProperty(PROPERTY_NAME);
-								if (!Objects.equals(singleFeature.getStringProperty("addr:postcode"), null)) {
-									place += " (" + singleFeature.getStringProperty("addr:postcode") + " ";
-								}
-								if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
-									place += singleFeature.getStringProperty("addr:city");
-								}
-								if (!Objects.equals(singleFeature.getStringProperty("addr:street"), null)) {
-									place += ", " + singleFeature.getStringProperty("addr:street");
-									if (!Objects.equals(singleFeature.getStringProperty("addr:housenumber"), null)) {
-										place += " " + singleFeature.getStringProperty("addr:housenumber") + ".";
-									}
-								}
-								if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
-									place += ")";
-								}
-								if (location != null) {
-									double distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
-											new LatLng(Double.parseDouble(singleFeature.toJson()
-													.split("\"coordinates\":\\[")[1]
-													.split(",")[1]
-													.split("]")[0]),
-													Double.parseDouble(((singleFeature.toJson()
-															.split("\"coordinates\":\\[")[1]
-															.split(",")[0]))))));
-									if (!(distance > Integer.MAX_VALUE)) {
-										place += " (";
-										place += Math.round(distance);
-										place += " m)";
-									}
-								}
-								Places.add(place + "\n" + i);
-
-
-								lats.add(Double.parseDouble(singleFeature.toJson()
-										.split("\"coordinates\":\\[")[1]
-										.split(",")[1]
-										.split("]")[0]));
-								lons.add(Double.parseDouble(singleFeature.toJson()
-										.split("\"coordinates\":\\[")[1]
-										.split(",")[0]));
-								data_json.add(singleFeature.toJson());
-								i++;
-							}
-						}
-						if (location != null && order.isChecked()) {
-							Collections.sort(Places, NumberAwareStringComparator.INSTANCE);
-						} else {
-							Collections.sort(Places);
-						}
-
-						latitudes = new ArrayList<Double>();
-						longitudes = new ArrayList<Double>();
-
-						i = 0;
-						for (String place : Places) {
-							int position = Integer.parseInt(Places.get(i).split("\n")[1]);
-							Places.set(i, Places.get(i).split("\n")[0]);
-							if (location != null && order.isChecked()) {
-								Places.set(i, Places.get(i).split("\r")[1]);
-							}
-							latitudes.add(lats.get(position));
-							longitudes.add(lons.get(position));
-							json.add(data_json.get(position));
-							i++;
-						}
-
-						runOnUiThread(() -> {
-							FillList(Places);
-						});
-					} catch (Exception e) {
-
-					}
-				}).run());
+		s.setOnCheckedChangeListener((buttonView, isChecked) -> {
+			sort.run();
+			Filter.run();
+		});
 
 		getWindow().getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(() -> {
 
@@ -1500,10 +1661,10 @@ public class MainActivity extends AppCompatActivity implements
 					List<Feature> featureList = featureCollection.features();
 					for (int i = 0; i < featureList.size(); i++) {
 						if (featureList.get(i).id().equals(features.get(0).id())) {
-							TextView address = (TextView) findViewById(R.id.address);
-							TextView name = (TextView) findViewById(R.id.name);
-							TextView note = (TextView) findViewById(R.id.note);
-							TextView category = (TextView) findViewById(R.id.category);
+							TextView address = findViewById(R.id.address);
+							TextView name = findViewById(R.id.name);
+							TextView note = findViewById(R.id.note);
+							TextView category = findViewById(R.id.category);
 
 							String place = "";
 							if (!Objects.equals(featureList.get(i).getStringProperty("addr:city"), null)) {
@@ -1531,101 +1692,9 @@ public class MainActivity extends AppCompatActivity implements
 							}
 							address.setText(place);
 							note.setText(featureList.get(i).getStringProperty("note"));
-							String style = "";
 
 							Feature feature = featureList.get(i);
-							if (feature.getStringProperty("amenity") != null) {
-								switch (feature.getStringProperty("amenity")) {
-									case "veterinary":
-										style = getResources().getString(R.string.vet);
-										break;
-									case "theatre":
-										style = getResources().getString(R.string.theatre);
-										break;
-									case "archive":
-										style = getResources().getString(R.string.archive);
-										break;
-									case "library":
-										style = getResources().getString(R.string.library);
-										break;
-									case "concert_hall":
-										style = getResources().getString(R.string.concerthall);
-										break;
-									case "drinking_water":
-										style = getResources().getString(R.string.water);
-										break;
-									case "toilets":
-										style = getResources().getString(R.string.toilet);
-										break;
-									case "waste_basket":
-										style = getResources().getString(R.string.trash);
-										break;
-									case "cafe":
-										style = getResources().getString(R.string.cafe);
-										break;
-									case "pub":
-										style = getResources().getString(R.string.pub);
-										break;
-									case "bar":
-										style = getResources().getString(R.string.bar);
-										break;
-									case "restaurant":
-										style = getResources().getString(R.string.restaurant);
-										break;
-								}
-							} else if (feature.getStringProperty("shop") != null) {
-								switch (feature.getStringProperty("shop")) {
-									case "pet_grooming":
-										style = getResources().getString(R.string.grooming);
-										break;
-									case "books":
-										style = getResources().getString(R.string.bookshop);
-										break;
-									default:
-										style = getResources().getString(R.string.shop);
-										break;
-								}
-							} else if (feature.getStringProperty("animal_training") != null) {
-								style = getResources().getString(R.string.training);
-							} else if (feature.getStringProperty("leisure") != null) {
-								switch (feature.getStringProperty("shop")) {
-									case "dog_park":
-										style = getResources().getString(R.string.park);
-										break;
-								}
-							} else if (feature.getStringProperty("tourism") != null) {
-								if (feature.getStringProperty("tourism").equals("museum")) {
-									style = getResources().getString(R.string.museum);
-								} else if (feature.getStringProperty("tourism").equals("gallery")) {
-									style = getResources().getString(R.string.gallery);
-								}
-							} else if (feature.getStringProperty("healthcare") != null) {
-								//TODO: complete
-                            /*switch (feature.getStringProperty("healthcare")){
-                                case "TODO()":
-                                    style = getResources().getString(R.string.TODO());
-                                    break;
-                            }*/
-							} else {
-								if (feature.getStringProperty("diet.vegan") != null) {
-									style = getResources().getString(R.string.vegan);
-								}
-								if (feature.getStringProperty("diet.vegetarian") != null) {
-									style = getResources().getString(R.string.vegetarian);
-								}
-								if (feature.getStringProperty("diet.gluten_free") != null) {
-									style = getResources().getString(R.string.glutenfree);
-								}
-								if (feature.getStringProperty("diet.lactose_free") != null) {
-									style = getResources().getString(R.string.lactosefree);
-								}
-								if (feature.getStringProperty("diet.dairy_free") != null) {
-									style = getResources().getString(R.string.dairyfree);
-								} else {
-									style = getResources().getString(R.string.other);
-								}
-							}
-
+							String style = categoryFromJson(feature);
 							if (feature.getStringProperty("wheelchair") != null &&
 									!feature.getStringProperty("wheelchair").equals("no")) {
 								style += " (";
@@ -1687,6 +1756,83 @@ public class MainActivity extends AppCompatActivity implements
 		}
 	}
 
+	String categoryFromJson (Feature data) {
+		if (data.getStringProperty("amenity") != null) {
+			switch (data.getStringProperty("amenity")) {
+				case "veterinary":
+					return getResources().getString(R.string.vet);
+				case "theatre":
+					return getResources().getString(R.string.theatre);
+				case "archive":
+					return getResources().getString(R.string.archive);
+				case "library":
+					return getResources().getString(R.string.library);
+				case "concert_hall":
+					return getResources().getString(R.string.concerthall);
+				case "drinking_water":
+					return getResources().getString(R.string.water);
+				case "toilets":
+					return getResources().getString(R.string.toilet);
+				case "waste_basket":
+					return getResources().getString(R.string.trash);
+				case "cafe":
+					return getResources().getString(R.string.cafe);
+				case "pub":
+					return getResources().getString(R.string.pub);
+				case "bar":
+					return getResources().getString(R.string.bar);
+				case "restaurant":
+					return getResources().getString(R.string.restaurant);
+			}
+		} else if (data.getStringProperty("shop") != null) {
+			switch (data.getStringProperty("shop")) {
+				case "pet_grooming":
+					return getResources().getString(R.string.grooming);
+				case "books":
+					return getResources().getString(R.string.bookshop);
+				default:
+					return getResources().getString(R.string.shop);
+			}
+		} else if (data.getStringProperty("animal_training") != null) {
+			return getResources().getString(R.string.training);
+		} else if (data.getStringProperty("leisure") != null) {
+			switch (data.getStringProperty("shop")) {
+				case "dog_park":
+					return getResources().getString(R.string.park);
+			}
+		} else if (data.getStringProperty("tourism") != null) {
+			if (data.getStringProperty("tourism").equals("museum")) {
+				return getResources().getString(R.string.museum);
+			} else if (data.getStringProperty("tourism").equals("gallery")) {
+				return getResources().getString(R.string.gallery);
+			}
+		} else if (data.getStringProperty("healthcare") != null) {
+			//TODO: complete
+                            /*switch (data.getStringProperty("healthcare")){
+                                case "TODO()":
+                                    return getResources().getString(R.string.TODO());
+                            }*/
+		} else {
+			if (data.getStringProperty("diet.vegan") != null) {
+				return getResources().getString(R.string.vegan);
+			}
+			if (data.getStringProperty("diet.vegetarian") != null) {
+				return getResources().getString(R.string.vegetarian);
+			}
+			if (data.getStringProperty("diet.gluten_free") != null) {
+				return getResources().getString(R.string.glutenfree);
+			}
+			if (data.getStringProperty("diet.lactose_free") != null) {
+				return getResources().getString(R.string.lactosefree);
+			}
+			if (data.getStringProperty("diet.dairy_free") != null) {
+				return getResources().getString(R.string.dairyfree);
+			} else {
+				return getResources().getString(R.string.other);
+			}
+		}
+		return null;
+	}
 	/**
 	 * Setup a layer with icons.
 	 */
@@ -1955,6 +2101,7 @@ public class MainActivity extends AppCompatActivity implements
 
 			activity.setUpData(featureCollection);
 			//new GenerateViewIconTask(activity).execute(featureCollection);
+			Refresh.run();
 			updateMap();
 
 			//handler.post(update);
