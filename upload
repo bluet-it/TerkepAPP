@@ -1,8 +1,1 @@
-#! /bin/bash
-
-./run install -r app/build/outputs/apk/kutyapp/debug/app-kutyapp-debug.apk
-./run install -r app/build/outputs/apk/kulturapp/debug/app-kulturapp-debug.apk
-./run install -r app/build/outputs/apk/kerekapp/debug/app-kerekapp-debug.apk
-./run install -r app/build/outputs/apk/etrendapp/debug/app-etrendapp-debug.apk
-./run install -r app/build/outputs/apk/egeszsegapp/debug/app-egeszsegapp-debug.apk
-./run install -r app/build/outputs/apk/h2oapp/debug/app-h2oapp-debug.apk
+/media/v/6F49CF9F678434C3/projects/Android/scripts/upload

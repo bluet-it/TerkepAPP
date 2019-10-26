@@ -39,7 +39,7 @@ public class Items extends RecyclerView.Adapter<Items.ViewHolder> {
 	// total number of rows
 	@Override
 	public int getItemCount() {
-		return mData.size();
+		return mData == null ? 0 : mData.size();
 	}
 
 

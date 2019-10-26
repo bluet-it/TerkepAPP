@@ -342,11 +342,11 @@ public class MainActivity extends AppCompatActivity implements
 			order.setVisibility(View.GONE);
 		}
 
-		if (location == null){
+		if (location == null) {
 			Places = new ArrayList<>();
 		} else if (((EditText) findViewById(R.id.distance)).getText().toString().equals("")) {
-			Places=temp_json;
-			if(s.equals(getResources().getString(R.string.all))){
+			Places = temp_json;
+			if (s.equals(getResources().getString(R.string.all))) {
 				Places = null;
 			}
 		} else {
@@ -439,22 +439,24 @@ public class MainActivity extends AppCompatActivity implements
 			}
 		} else {
 			int i = 0;
-			for (String ignored : Places) {
-				Places.set(i, Places.get(i).split("\n")[0]);
-				Places.set(i, Places.get(i).split("\r")[1]);
-				i++;
-			}
-			Collections.sort(Places);
-			i = 0;
-			for (String ignored : Places) {
-				latitudes_search.add(Double.parseDouble(filter.get(i)
-						.split("\"coordinates\":\\[")[1]
-						.split(",")[1]
-						.split("]")[0]));
-				longitudes_search.add(Double.parseDouble(filter.get(i)
-						.split("\"coordinates\":\\[")[1]
-						.split(",")[0]));
-				i++;
+			if (Places != null) {
+				for (String ignored : Places) {
+					Places.set(i, Places.get(i).split("\n")[0]);
+					Places.set(i, Places.get(i).split("\r")[1]);
+					i++;
+				}
+				Collections.sort(Places);
+				i = 0;
+				for (String ignored : Places) {
+					latitudes_search.add(Double.parseDouble(filter.get(i)
+							.split("\"coordinates\":\\[")[1]
+							.split(",")[1]
+							.split("]")[0]));
+					longitudes_search.add(Double.parseDouble(filter.get(i)
+							.split("\"coordinates\":\\[")[1]
+							.split(",")[0]));
+					i++;
+				}
 			}
 		}
 
@@ -663,7 +665,7 @@ public class MainActivity extends AppCompatActivity implements
 		}, 0, 10000);
 	}
 
-	String nameJson(Feature singleFeature){
+	String nameJson (Feature singleFeature) {
 		double distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
 				new LatLng(Double.parseDouble(singleFeature.toJson()
 						.split("\"coordinates\":\\[")[1]
@@ -881,6 +883,7 @@ public class MainActivity extends AppCompatActivity implements
 				imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
 			}
 		}).run();
+		Filter.run();
 	}
 
 	@Override
