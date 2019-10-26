@@ -395,7 +395,7 @@ public class MainActivity extends AppCompatActivity implements
 										Double.parseDouble(((singleFeature.toJson()
 												.split("\"coordinates\":\\[")[1]
 												.split(",")[0]))))));
-						if (!(distance > Integer.MAX_VALUE)) {
+						if (distance < Integer.MAX_VALUE) {
 							place += " (";
 							place += Math.round(distance);
 							place += " m)";
@@ -442,7 +442,7 @@ public class MainActivity extends AppCompatActivity implements
 			if (Places != null) {
 				for (String ignored : Places) {
 					Places.set(i, Places.get(i).split("\n")[0]);
-					Places.set(i, Places.get(i).split("\r")[1]);
+					Places.set(i, Places.get(i).split("\r")[2]);
 					i++;
 				}
 				Collections.sort(Places);
