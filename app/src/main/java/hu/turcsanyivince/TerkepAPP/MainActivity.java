@@ -4,7 +4,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PointF;
 import android.graphics.Rect;
@@ -67,9 +66,7 @@ import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.style.expressions.Expression;
 import com.mapbox.mapboxsdk.style.layers.CircleLayer;
-import com.mapbox.mapboxsdk.style.layers.LineLayer;
-import com.mapbox.mapboxsdk.style.layers.Property;
-import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
+import com.mapbox.mapboxsdk.style.layers.FillLayer;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonOptions;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
@@ -88,25 +85,31 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutionException;
 
 import retrofit2.Response;
 
 import static com.mapbox.mapboxsdk.style.expressions.Expression.all;
+import static com.mapbox.mapboxsdk.style.expressions.Expression.any;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.eq;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.get;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.gte;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.has;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.literal;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.lt;
+import static com.mapbox.mapboxsdk.style.expressions.Expression.not;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.toNumber;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.circleColor;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.circleRadius;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillColor;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconImage;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.textAllowOverlap;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.textAnchor;
@@ -130,6 +133,8 @@ public class MainActivity extends AppCompatActivity implements
 	public ArrayList<String> json = new ArrayList<>();
 	public MapboxMap mapboxMap;
 	// Variables needed to initialize a map
+	FeatureCollection polygon;
+	boolean search = false;
 	boolean dark = false;
 	Point location = null;
 	double lastLat = 0;
@@ -420,7 +425,7 @@ public class MainActivity extends AppCompatActivity implements
 			}
 		}
 
-		if (location != null && order.isChecked()) {
+		if (location != null && order.isChecked() && Places != null) {
 			Collections.sort(Places, NumberAwareStringComparator.INSTANCE);
 			int i = 0;
 			for (String place : Places) {
@@ -482,6 +487,7 @@ public class MainActivity extends AppCompatActivity implements
 		if (update.isChecked()) {
 			try {
 				Switch order = findViewById(R.id.order);
+				Switch auto = findViewById(R.id.auto);
 				Button button = findViewById(R.id.search_distance);
 				if (mapboxMap.getLocationComponent().getLastKnownLocation() != null) {
 					location = Point.fromLngLat(
@@ -489,12 +495,19 @@ public class MainActivity extends AppCompatActivity implements
 							mapboxMap.getLocationComponent().getLastKnownLocation().getLatitude());
 					order.setVisibility(View.VISIBLE);
 					button.setVisibility(View.VISIBLE);
+					auto.setVisibility(View.VISIBLE);
 				} else {
 					order.setVisibility(View.GONE);
 					button.setVisibility(View.GONE);
+					auto.setVisibility(View.GONE);
 				}
 
 				FeatureCollection featureCollection = FeatureCollection.fromJson(geoJson);
+
+				ArrayList<Feature> full = new ArrayList<>();
+				full.addAll(polygon.features());
+				full.addAll(featureCollection.features());
+				featureCollection = FeatureCollection.fromFeatures(full);
 
 				ArrayList<String> Places = new ArrayList<>();
 
@@ -503,68 +516,268 @@ public class MainActivity extends AppCompatActivity implements
 				ArrayList<String> data_json = new ArrayList<>();
 
 				int i = 0;
-				for (Feature singleFeature : featureCollection.features()) {
-					if (singleFeature.getStringProperty(PROPERTY_NAME) != null) {
-						String place = "";
-						if (location != null && order.isChecked()) {
-							double distance = new LatLng(location.latitude(), location.longitude()).distanceTo(
-									new LatLng(Double.parseDouble(singleFeature.toJson()
+				try {
+					for (Feature singleFeature : featureCollection.features()) {
+						if (singleFeature.getStringProperty(PROPERTY_NAME) != null) {
+							String place = "";
+							if (location != null && order.isChecked()) {double lat;
+								double lon;
+								try {
+									lat = Double.parseDouble(singleFeature.geometry().toJson()
+											.split("\"coordinates\":\\[")[1]
+											.split(",")[0]);
+									lon = Double.parseDouble(singleFeature.toJson()
 											.split("\"coordinates\":\\[")[1]
 											.split(",")[1]
-											.split("]")[0]),
-											Double.parseDouble(singleFeature.toJson()
-													.split("\"coordinates\":\\[")[1]
-													.split(",")[0])));
-							if (distance > Integer.MAX_VALUE) {
-								distance = Integer.MAX_VALUE;
+											.split("]")[0]);
+								} catch (Exception e) {
+									Double lat_temp = 0d;
+									Double lon_temp = 0d;
+									int count = 0;
+									for (List<Position> places : fromJson(singleFeature.geometry().toJson().split(
+											"\\{\"type\":\"Polygon\",\"coordinates\":")[1].split("\\}")[0])
+											.getCoordinates()) {
+										for (Position pos : places) {
+											lon_temp += pos.getLatitude();
+											lat_temp += pos.getLongitude();
+											count++;
+										}
+									}
+									lat = lat_temp / count;
+									lon = lon_temp / count;
+								}
+								double distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
+										new LatLng(lat,lon)));
+								if (distance > Integer.MAX_VALUE) {
+									distance = Integer.MAX_VALUE;
+								}
+								place += distance;
+								place += "\r";
 							}
-							place += distance;
-							place += "\r";
-						}
-						place += singleFeature.getStringProperty(PROPERTY_NAME);
-						if (!Objects.equals(singleFeature.getStringProperty("addr:postcode"), null)) {
-							place += " (" + singleFeature.getStringProperty("addr:postcode") + " ";
-						}
-						if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
-							place += singleFeature.getStringProperty("addr:city");
-						}
-						if (!Objects.equals(singleFeature.getStringProperty("addr:street"), null)) {
-							place += ", " + singleFeature.getStringProperty("addr:street");
-							if (!Objects.equals(singleFeature.getStringProperty("addr:housenumber"), null)) {
-								place += " " + singleFeature.getStringProperty("addr:housenumber") + ".";
+							place += singleFeature.getStringProperty(PROPERTY_NAME);
+							if (!Objects.equals(singleFeature.getStringProperty("addr:postcode"), null)) {
+								place += " (" + singleFeature.getStringProperty("addr:postcode") + " ";
 							}
-						}
-						if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
-							place += ")";
-						}
-						if (location != null) {
-							double distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
-									new LatLng(Double.parseDouble(singleFeature.toJson()
+							if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+								place += singleFeature.getStringProperty("addr:city");
+							}
+							if (!Objects.equals(singleFeature.getStringProperty("addr:street"), null)) {
+								place += ", " + singleFeature.getStringProperty("addr:street");
+								if (!Objects.equals(singleFeature.getStringProperty("addr:housenumber"), null)) {
+									place += " " + singleFeature.getStringProperty("addr:housenumber") + ".";
+								}
+							}
+							if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+								place += ")";
+							}
+							if (location != null) {
+								double lat;
+								double lon;
+								try {
+									lat = Double.parseDouble(singleFeature.geometry().toJson()
+											.split("\"coordinates\":\\[")[1]
+											.split(",")[0]);
+									lon = Double.parseDouble(singleFeature.toJson()
 											.split("\"coordinates\":\\[")[1]
 											.split(",")[1]
-											.split("]")[0]),
-											Double.parseDouble(((singleFeature.toJson()
-													.split("\"coordinates\":\\[")[1]
-													.split(",")[0]))))));
-							if (!(distance > Integer.MAX_VALUE)) {
-								place += " (";
-								place += Math.round(distance);
-								place += " m)";
+											.split("]")[0]);
+								} catch (Exception e) {
+									Double lat_temp = 0d;
+									Double lon_temp = 0d;
+									int count = 0;
+									for (List<Position> places : fromJson(singleFeature.geometry().toJson().split(
+											"\\{\"type\":\"Polygon\",\"coordinates\":")[1].split("\\}")[0])
+											.getCoordinates()) {
+										for (Position pos : places) {
+											lon_temp += pos.getLatitude();
+											lat_temp += pos.getLongitude();
+											count++;
+										}
+									}
+									lat = lat_temp / count;
+									lon = lon_temp / count;
+								}
+								double distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
+										new LatLng(lat,lon)));
+								if (!(distance > Integer.MAX_VALUE)) {
+									place += " (";
+									place += Math.round(distance);
+									place += " m)";
+								}
 							}
-						}
-						Places.add(place + "\n" + i);
+							Places.add(place + "\n" + i);
 
-
-						lats.add(Double.parseDouble(singleFeature.toJson()
+							double lat;
+							double lon;
+							try {
+								lat = Double.parseDouble(singleFeature.geometry().toJson()
+										.split("\"coordinates\":\\[")[1]
+										.split(",")[0]);
+								lon = Double.parseDouble(singleFeature.toJson()
+										.split("\"coordinates\":\\[")[1]
+										.split(",")[1]
+										.split("]")[0]);
+							} catch (Exception e) {
+								Double lat_temp = 0d;
+								Double lon_temp = 0d;
+								int count = 0;
+								for (List<Position> places : fromJson(singleFeature.geometry().toJson().split(
+										"\\{\"type\":\"Polygon\",\"coordinates\":")[1].split("\\}")[0])
+										.getCoordinates()) {
+									for (Position pos : places) {
+										lon_temp += pos.getLatitude();
+										lat_temp += pos.getLongitude();
+										count++;
+									}
+								}
+								lat = lat_temp / count;
+								lon = lon_temp / count;
+							}
+							lats.add(lat/*Double.parseDouble(singleFeature.toJson()
 								.split("\"coordinates\":\\[")[1]
 								.split(",")[1]
-								.split("]")[0]));
-						lons.add(Double.parseDouble(singleFeature.toJson()
+								.split("]")[0])*/);
+							lons.add(lon/*Double.parseDouble(singleFeature.toJson()
 								.split("\"coordinates\":\\[")[1]
-								.split(",")[0]));
-						data_json.add(singleFeature.toJson());
+								.split(",")[0])*/);
+							data_json.add(singleFeature.toJson());
+						} else {
+							String place = "";
+							if (location != null && order.isChecked()) {
+								double lat;
+								double lon;
+								try {
+									lat = Double.parseDouble(singleFeature.geometry().toJson()
+											.split("\"coordinates\":\\[")[1]
+											.split(",")[0]);
+									lon = Double.parseDouble(singleFeature.toJson()
+											.split("\"coordinates\":\\[")[1]
+											.split(",")[1]
+											.split("]")[0]);
+								} catch (Exception e) {
+									Double lat_temp = 0d;
+									Double lon_temp = 0d;
+									int count = 0;
+									for (List<Position> places : fromJson(singleFeature.geometry().toJson().split(
+											"\\{\"type\":\"Polygon\",\"coordinates\":")[1].split("\\}")[0])
+											.getCoordinates()) {
+										for (Position pos : places) {
+											lon_temp += pos.getLatitude();
+											lat_temp += pos.getLongitude();
+											count++;
+										}
+									}
+									lat = lat_temp / count;
+									lon = lon_temp / count;
+								}
+								double distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
+										new LatLng(lat,lon)));
+								if (distance > Integer.MAX_VALUE) {
+									distance = Integer.MAX_VALUE;
+								}
+								place += distance;
+								place += "\r";
+							}
+							place += categoryFromJson(singleFeature);
+							if (!Objects.equals(singleFeature.getStringProperty("addr:postcode"), null)) {
+								place += " (" + singleFeature.getStringProperty("addr:postcode") + " ";
+							}
+							if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+								place += singleFeature.getStringProperty("addr:city");
+							}
+							if (!Objects.equals(singleFeature.getStringProperty("addr:street"), null)) {
+								place += ", " + singleFeature.getStringProperty("addr:street");
+								if (!Objects.equals(singleFeature.getStringProperty("addr:housenumber"), null)) {
+									place += " " + singleFeature.getStringProperty("addr:housenumber") + ".";
+								}
+							}
+							if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+								place += ")";
+							}
+							if (location != null) {
+								double lat;
+								double lon;
+								try {
+									lat = Double.parseDouble(singleFeature.geometry().toJson()
+											.split("\"coordinates\":\\[")[1]
+											.split(",")[0]);
+									lon = Double.parseDouble(singleFeature.toJson()
+											.split("\"coordinates\":\\[")[1]
+											.split(",")[1]
+											.split("]")[0]);
+								} catch (Exception e) {
+									Double lat_temp = 0d;
+									Double lon_temp = 0d;
+									int count = 0;
+									for (List<Position> places : fromJson(singleFeature.geometry().toJson().split(
+											"\\{\"type\":\"Polygon\",\"coordinates\":")[1].split("\\}")[0])
+											.getCoordinates()) {
+										for (Position pos : places) {
+											lon_temp += pos.getLatitude();
+											lat_temp += pos.getLongitude();
+											count++;
+										}
+									}
+									lat = lat_temp / count;
+									lon = lon_temp / count;
+								}
+								double distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
+										new LatLng(lat,lon)));
+								if (!(distance > Integer.MAX_VALUE)) {
+									place += " (";
+									place += Math.round(distance);
+									place += " m)";
+								}
+							}
+							Places.add(place + "\n" + i);
+
+
+							double lat;
+							double lon;
+							try {
+								lat = Double.parseDouble(singleFeature.geometry().toJson()
+										.split("\"coordinates\":\\[")[1]
+										.split(",")[0]);
+								lon = Double.parseDouble(singleFeature.toJson()
+										.split("\"coordinates\":\\[")[1]
+										.split(",")[1]
+										.split("]")[0]);
+							} catch (Exception e) {
+								Double lat_temp = 0d;
+								Double lon_temp = 0d;
+								int count = 0;
+								String json_temp = "";
+								try {
+									json_temp = singleFeature.geometry().toJson().split(
+											"\\{\"type\":\"Polygon\",\"coordinates\":")[1].split("\\}")[0];
+								}catch (Exception e1){
+									json_temp = singleFeature.geometry().toJson().split(
+											"\\{\"type\":\"LineString\",\"coordinates\":")[1].split("\\}")[0];
+								}
+								for (List<Position> places : fromJson(json_temp)
+										.getCoordinates()) {
+									for (Position pos : places) {
+										lat_temp += pos.getLatitude();
+										lon_temp += pos.getLongitude();
+										count++;
+									}
+								}
+								lat = lat_temp / count;
+								lon = lon_temp / count;
+							}
+							lats.add(lat/*Double.parseDouble(singleFeature.toJson()
+								.split("\"coordinates\":\\[")[1]
+								.split(",")[1]
+								.split("]")[0])*/);
+							lons.add(lon/*Double.parseDouble(singleFeature.toJson()
+								.split("\"coordinates\":\\[")[1]
+								.split(",")[0])*/);
+							data_json.add(singleFeature.toJson());
+						}
 						i++;
 					}
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
 				if (location != null && order.isChecked()) {
 					Collections.sort(Places, NumberAwareStringComparator.INSTANCE);
@@ -577,21 +790,23 @@ public class MainActivity extends AppCompatActivity implements
 
 				i = 0;
 				for (String place : Places) {
-					int position = Integer.parseInt(Places.get(i).split("\n")[1]);
-					Places.set(i, Places.get(i).split("\n")[0]);
-					if (location != null && order.isChecked()) {
-						Places.set(i, Places.get(i).split("\r")[1]);
+					try {
+						int position = Integer.parseInt(Places.get(i).split("\n")[1]);
+						Places.set(i, Places.get(i).split("\n")[0]);
+						if (location != null && order.isChecked()) {
+							Places.set(i, Places.get(i).split("\n")[1]);
+						}
+						latitudes.add(lats.get(position));
+						longitudes.add(lons.get(position));
+						json.add(data_json.get(position));
+					}catch (Exception e){
+						e.printStackTrace();
 					}
-					latitudes.add(lats.get(position));
-					longitudes.add(lons.get(position));
-					json.add(data_json.get(position));
 					i++;
 				}
-				runOnUiThread(() -> {
-					FillList(Places);
-				});
+				runOnUiThread(() -> FillList(Places));
 			} catch (Exception e) {
-
+				e.printStackTrace();
 			}
 		}
 	});
@@ -608,6 +823,7 @@ public class MainActivity extends AppCompatActivity implements
 	private MainActivityLocationCallback callback = new MainActivityLocationCallback(this);
 	private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
 			= item -> {
+		search = false;
 		switch (item.getItemId()) {
 			case R.id.navigation_map:
 				findViewById(R.id.linearLayout).setVisibility(View.GONE);
@@ -632,6 +848,7 @@ public class MainActivity extends AppCompatActivity implements
 				findViewById(R.id.search_results).setVisibility(View.VISIBLE);
 				findViewById(R.id.center_map).setVisibility(View.GONE);
 				findViewById(R.id.compass_map).setVisibility(View.GONE);
+				search = true;
 				return true;
 			case R.id.navigation_filter:
 				findViewById(R.id.linearLayout).setVisibility(View.VISIBLE);
@@ -662,7 +879,7 @@ public class MainActivity extends AppCompatActivity implements
 			public void run () {
 				Refresh.run();
 			}
-		}, 0, 10000);
+		}, 0, 30000);
 	}
 
 	String nameJson (Feature singleFeature) {
@@ -747,143 +964,146 @@ public class MainActivity extends AppCompatActivity implements
 	}
 
 	void search () {
-		new Thread(() -> {
-			ArrayList<String> Places = new ArrayList<>();
-			latitudes_search = new ArrayList<>();
-			longitudes_search = new ArrayList<>();
+		if (search) {
+			new Thread(() -> {
+				ArrayList<String> Places = new ArrayList<>();
+				latitudes_search = new ArrayList<>();
+				longitudes_search = new ArrayList<>();
 
-			EditText input = findViewById(R.id.search);
-			String query = input.getText().toString();
+				EditText input = findViewById(R.id.search);
+				String query = input.getText().toString();
 
-			String[] keyValue = keyValueCategory(query);
-			String key = keyValue[0];
-			String value = keyValue[1];
+				String[] keyValue = keyValueCategory(query);
+				String key = keyValue[0];
+				String value = keyValue[1];
 
-			for (int i = 0; i < json.size() - 1; i++) {
-				String object = json.get(i);
-				try {
-					Switch order = findViewById(R.id.order);
-					if (mapboxMap.getLocationComponent().getLastKnownLocation() != null) {
-						location = Point.fromLngLat(
-								mapboxMap.getLocationComponent().getLastKnownLocation().getLongitude(),
-								mapboxMap.getLocationComponent().getLastKnownLocation().getLatitude());
-						order.setVisibility(View.VISIBLE);
-					} else {
-						order.setVisibility(View.GONE);
-					}
+				for (int i = 0; i < json.size() - 1; i++) {
+					String object = json.get(i);
+					try {
+						Switch order = findViewById(R.id.order);
+						if (mapboxMap.getLocationComponent().getLastKnownLocation() != null) {
+							location = Point.fromLngLat(
+									mapboxMap.getLocationComponent().getLastKnownLocation().getLongitude(),
+									mapboxMap.getLocationComponent().getLastKnownLocation().getLatitude());
+							order.setVisibility(View.VISIBLE);
+						} else {
+							order.setVisibility(View.GONE);
+						}
 
-					Feature singleFeature = Feature.fromJson(object);
+						Feature singleFeature = Feature.fromJson(object);
 
-					//String find = object.split("\"name\":\"")[1].split("\"")[0];
-					if (object.toLowerCase().contains(query.toLowerCase()) ||
-							object.toLowerCase().contains(key + "\" ?: ?\"" + value)/* ||
+						//String find = object.split("\"name\":\"")[1].split("\"")[0];
+						if (object.toLowerCase().contains(query.toLowerCase()) ||
+								object.toLowerCase().contains(key + "\" ?: ?\"" + value)/* ||
                         object.split("\"" + key + "\":\"")[1].split("\"")[0]
                                 .contains(value.toLowerCase())*/) {
-						String place = "";
+							String place = "";
+							if (location != null && order.isChecked()) {
+								double distance = new LatLng(location.latitude(), location.longitude()).distanceTo(
+										new LatLng(Double.parseDouble(singleFeature.toJson()
+												.split("\"coordinates\":\\[")[1]
+												.split(",")[1]
+												.split("]")[0]),
+												Double.parseDouble(singleFeature.toJson()
+														.split("\"coordinates\":\\[")[1]
+														.split(",")[0])));
+								if (distance > Integer.MAX_VALUE) {
+									distance = Integer.MAX_VALUE;
+								}
+								place += distance;
+								place += "\r";
+							}
+							place += singleFeature.getStringProperty(PROPERTY_NAME);
+							if (!Objects.equals(singleFeature.getStringProperty("addr:postcode"), null)) {
+								place += " (" + singleFeature.getStringProperty("addr:postcode") + " ";
+							}
+							if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+								place += singleFeature.getStringProperty("addr:city");
+							}
+							if (!Objects.equals(singleFeature.getStringProperty("addr:street"), null)) {
+								place += ", " + singleFeature.getStringProperty("addr:street");
+								if (!Objects.equals(singleFeature.getStringProperty("addr:housenumber"), null)) {
+									place += " " + singleFeature.getStringProperty("addr:housenumber") + ".";
+								}
+							}
+							if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
+								place += ")";
+							}
+							if (location != null) {
+								double distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
+										new LatLng(Double.parseDouble(singleFeature.toJson()
+												.split("\"coordinates\":\\[")[1]
+												.split(",")[1]
+												.split("]")[0]),
+												Double.parseDouble(((singleFeature.toJson()
+														.split("\"coordinates\":\\[")[1]
+														.split(",")[0]))))));
+								if (!(distance > Integer.MAX_VALUE)) {
+									place += " (";
+									place += Math.round(distance);
+									place += " m)";
+								}
+							}
+							latitudes_search.add(Double.parseDouble(object
+									.split("\"coordinates\":\\[")[1]
+									.split(",")[1]
+									.split("]")[0]));
+							longitudes_search.add(Double.parseDouble(object
+									.split("\"coordinates\":\\[")[1]
+									.split(",")[0]));
+							if (!Places.contains(place)) {
+								Places.add(place);
+							} else {
+								break;
+							}
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+				Switch order = findViewById(R.id.order);
+				if (location != null && order.isChecked()) {
+					Collections.sort(Places, NumberAwareStringComparator.INSTANCE);
+					int i = 0;
+					for (String place : Places) {
+						int position = Integer.parseInt(Places.get(i).split("\n")[1]);
+						Places.set(i, Places.get(i).split("\n")[0]);
 						if (location != null && order.isChecked()) {
-							double distance = new LatLng(location.latitude(), location.longitude()).distanceTo(
-									new LatLng(Double.parseDouble(singleFeature.toJson()
-											.split("\"coordinates\":\\[")[1]
-											.split(",")[1]
-											.split("]")[0]),
-											Double.parseDouble(singleFeature.toJson()
-													.split("\"coordinates\":\\[")[1]
-													.split(",")[0])));
-							if (distance > Integer.MAX_VALUE) {
-								distance = Integer.MAX_VALUE;
-							}
-							place += distance;
-							place += "\r";
+							Places.set(i, Places.get(i).split("\r")[1]);
 						}
-						place += singleFeature.getStringProperty(PROPERTY_NAME);
-						if (!Objects.equals(singleFeature.getStringProperty("addr:postcode"), null)) {
-							place += " (" + singleFeature.getStringProperty("addr:postcode") + " ";
-						}
-						if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
-							place += singleFeature.getStringProperty("addr:city");
-						}
-						if (!Objects.equals(singleFeature.getStringProperty("addr:street"), null)) {
-							place += ", " + singleFeature.getStringProperty("addr:street");
-							if (!Objects.equals(singleFeature.getStringProperty("addr:housenumber"), null)) {
-								place += " " + singleFeature.getStringProperty("addr:housenumber") + ".";
-							}
-						}
-						if (!Objects.equals(singleFeature.getStringProperty("addr:city"), null)) {
-							place += ")";
-						}
-						if (location != null) {
-							double distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
-									new LatLng(Double.parseDouble(singleFeature.toJson()
-											.split("\"coordinates\":\\[")[1]
-											.split(",")[1]
-											.split("]")[0]),
-											Double.parseDouble(((singleFeature.toJson()
-													.split("\"coordinates\":\\[")[1]
-													.split(",")[0]))))));
-							if (!(distance > Integer.MAX_VALUE)) {
-								place += " (";
-								place += Math.round(distance);
-								place += " m)";
-							}
-						}
-						latitudes_search.add(Double.parseDouble(object
+						latitudes_search.add(Double.parseDouble(place
 								.split("\"coordinates\":\\[")[1]
 								.split(",")[1]
 								.split("]")[0]));
-						longitudes_search.add(Double.parseDouble(object
+						longitudes_search.add(Double.parseDouble(place
 								.split("\"coordinates\":\\[")[1]
 								.split(",")[0]));
-						if (!Places.contains(place)) {
-							Places.add(place);
-						} else {
-							break;
-						}
+						i++;
 					}
-				} catch (Exception e) {
-					e.printStackTrace();
+				} else {
+					Collections.sort(Places);
 				}
-			}
-			Switch order = findViewById(R.id.order);
-			if (location != null && order.isChecked()) {
-				Collections.sort(Places, NumberAwareStringComparator.INSTANCE);
-				int i = 0;
-				for (String place : Places) {
-					int position = Integer.parseInt(Places.get(i).split("\n")[1]);
-					Places.set(i, Places.get(i).split("\n")[0]);
-					if (location != null && order.isChecked()) {
-						Places.set(i, Places.get(i).split("\r")[1]);
-					}
-					latitudes_search.add(Double.parseDouble(place
-							.split("\"coordinates\":\\[")[1]
-							.split(",")[1]
-							.split("]")[0]));
-					longitudes_search.add(Double.parseDouble(place
-							.split("\"coordinates\":\\[")[1]
-							.split(",")[0]));
-					i++;
-				}
-			} else {
-				Collections.sort(Places);
-			}
 
 
-			// set up the RecyclerView
-			RecyclerView recyclerView = findViewById(R.id.search_results);
-			recyclerView.setLayoutManager(new LinearLayoutManager(this));
-			adapter_search = new Items(this, Places);
-			adapter_search.setClickListener(this);
-			recyclerView.setAdapter(adapter_search);
-			findViewById(R.id.search_results).setVisibility(View.VISIBLE);
-			findViewById(R.id.recyclerView).setVisibility(View.GONE);
-			findViewById(R.id.center_map).setVisibility(View.VISIBLE);
-			findViewById(R.id.compass_map).setVisibility(View.VISIBLE);
-			View view = this.getCurrentFocus();
-			if (view != null) {
-				InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-				imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-			}
-		}).run();
-		Filter.run();
+				// set up the RecyclerView
+				RecyclerView recyclerView = findViewById(R.id.search_results);
+				recyclerView.setLayoutManager(new LinearLayoutManager(this));
+				adapter_search = new Items(this, Places);
+				adapter_search.setClickListener(this);
+				recyclerView.setAdapter(adapter_search);
+				findViewById(R.id.search_results).setVisibility(View.VISIBLE);
+				findViewById(R.id.recyclerView).setVisibility(View.GONE);
+				findViewById(R.id.center_map).setVisibility(View.VISIBLE);
+				findViewById(R.id.compass_map).setVisibility(View.VISIBLE);
+				View view = this.getCurrentFocus();
+				if (view != null) {
+					InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+					imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+				}
+			}).run();
+		} else {
+			Filter.run();
+		}
 	}
 
 	@Override
@@ -935,7 +1155,7 @@ public class MainActivity extends AppCompatActivity implements
 		distance.setOnClickListener(this);
 		ImageButton close = findViewById(R.id.close);
 		close.setOnClickListener(this);
-		Spinner spinner = (Spinner) findViewById(R.id.filter);
+		Spinner spinner = findViewById(R.id.filter);
 		spinner.setOnItemSelectedListener(this);
 
 	}
@@ -1195,7 +1415,6 @@ public class MainActivity extends AppCompatActivity implements
 		mapboxMap.setStyle(new Style.Builder().
 						fromUri(url),
 				style -> {
-					enableLocationComponent(style);
 
 					new LoadGeoJsonDataTask(MainActivity.this).execute();
 					mapboxMap.addOnMapClickListener(MainActivity.this);
@@ -1210,14 +1429,17 @@ public class MainActivity extends AppCompatActivity implements
 					} catch (URISyntaxException e) {
 						e.printStackTrace();
 					}
-					style.addLayer(new LineLayer("linelayer", "source-id").withProperties(
+
+					style.addLayerAbove(new FillLayer("linelayer", "source-id").withProperties(
+							fillColor(Color.parseColor("#3bb2d0")))/*
 							PropertyFactory.lineDasharray(new Float[]{0.01f, 2f}),
 							PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
 							PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
 							PropertyFactory.lineWidth(2f),
-							PropertyFactory.lineColor(Color.parseColor("#0C7A0E"))
-					));
+							PropertyFactory.lineColor(Color.parseColor("#0C7A0E")*/, "building-3d"
+					);
 
+					enableLocationComponent(style);
 					style.addImage(
 							"icon",
 							BitmapUtils.getBitmapFromDrawable(getResources().getDrawable(R.drawable.mapbox_marker_icon_default)),
@@ -1352,7 +1574,8 @@ public class MainActivity extends AppCompatActivity implements
 		Switch s = findViewById(R.id.order);
 
 		s.setOnCheckedChangeListener((buttonView, isChecked) -> {
-			sort.run();
+			//sort.run();
+			update.run();
 			Filter.run();
 		});
 
@@ -1578,16 +1801,10 @@ public class MainActivity extends AppCompatActivity implements
 						literal(getResources().getString(R.string.museum)),
 						eq(get("tourism"), "gallery"),
 						literal(getResources().getString(R.string.gallery)),
-						eq(get("amenity"), ""),
-						literal(""),
-						eq(get("shop"), ""),
-						literal(""),
-						eq(get("animal_training"), ""),
-						literal(""),
-						eq(get("leisure"), ""),
-						literal(""),
-						eq(get("tourism"), ""),
-						literal(""),
+						eq(get("tourism"), "hotel"),
+						literal(getResources().getString(R.string.hotel)),
+						has("shop"),
+						literal(getResources().getString(R.string.shop)),
 						literal(getResources().getString(R.string.other)))),
 				textSize(18f),
 				textColor(Color.BLACK),
@@ -1597,6 +1814,12 @@ public class MainActivity extends AppCompatActivity implements
 				textColor(col),
 				textAnchor("bottom")
 		);
+		unclustered.setFilter(any(
+				has("amenity"),
+				has("shop"),
+				has("animal_training"),
+				has("leisure"),
+				has("tourism")));
 
 		loadedMapStyle.addLayer(unclustered);
 	}
@@ -1664,90 +1887,13 @@ public class MainActivity extends AppCompatActivity implements
 					List<Feature> featureList = featureCollection.features();
 					for (int i = 0; i < featureList.size(); i++) {
 						if (featureList.get(i).id().equals(features.get(0).id())) {
-							TextView address = findViewById(R.id.address);
-							TextView name = findViewById(R.id.name);
-							TextView note = findViewById(R.id.note);
-							TextView category = findViewById(R.id.category);
-
-							String place = "";
-							if (!Objects.equals(featureList.get(i).getStringProperty("addr:city"), null)) {
-								place += featureList.get(i).getStringProperty("addr:city");
-								if (!Objects.equals(featureList.get(i).getStringProperty("addr:street"), null)) {
-									place += ", " + featureList.get(i).getStringProperty("addr:street");
-									if (!Objects.equals(featureList.get(i).getStringProperty("addr:housenumber"), null)) {
-										place += " " + featureList.get(i).getStringProperty("addr:housenumber") + ".";
-									}
-								}
-							} else {
-								List<CarmenFeature> locations =
-										new GeocodeTask().execute(featureList.get(i)).get();
-								if (locations.isEmpty()) {
-								} else {
-									place = locations.get(0).placeName().split(", ")[2] + ", " +
-											locations.get(0).placeName().split(", ")[1];
-								}
-							}
-
-							if (featureList.get(i).getStringProperty("name") == null) {
-								name.setText("-");
-							} else {
-								name.setText(featureList.get(i).getStringProperty("name"));
-							}
-							address.setText(place);
-							note.setText(featureList.get(i).getStringProperty("note"));
-
-							Feature feature = featureList.get(i);
-							String style = categoryFromJson(feature);
-							if (feature.getStringProperty("wheelchair") != null &&
-									!feature.getStringProperty("wheelchair").equals("no")) {
-								style += " (";
-								switch (feature.getStringProperty("wheelchair")) {
-									case "yes":
-										style += getResources().getString(R.string.accessible);
-										break;
-									case "designated":
-										style += getResources().getString(R.string.designated);
-										break;
-									case "limited":
-										style += getResources().getString(R.string.limited);
-										break;
-								}
-								style += " " +
-										getResources().getString(R.string.wheelchair);
-							}
-							if (feature.getStringProperty("dog") != null &&
-									!feature.getStringProperty("dog").equals("no")) {
-								if (feature.getStringProperty("wheelchair") != null &&
-										!Objects.equals(feature.getStringProperty("wheelchair"), "no")) {
-									style += " " + getResources().getString(R.string.and) + " ";
-								} else {
-									style += " (";
-								}
-								switch (feature.getStringProperty("dog")) {
-									case "yes":
-										style += getResources().getString(R.string.accessible);
-										break;
-									case "leashed":
-										style += getResources().getString(R.string.accessible);
-										break;
-									case "limited":
-										style += getResources().getString(R.string.limited);
-										break;
-								}
-								style += " " +
-										getResources().getString(R.string.dog);
-							}
-							if ((feature.getStringProperty("wheelchair") != null &&
-									!feature.getStringProperty("wheelchair").equals("no")) ||
-									(feature.getStringProperty("dog") != null &&
-											!feature.getStringProperty("dog").equals("no"))) {
-								style += ")";
-							}
-							category.setText(style);
-
-							selected_json = featureList.get(i).toJson();
-
-							findViewById(R.id.info).setVisibility(View.VISIBLE);
+							setLabel(featureList, i);
+						}
+					}
+					featureList = polygon.features();
+					for (int i = 0; i < featureList.size(); i++) {
+						if (featureList.get(i).id().equals(features.get(0).id())) {
+							setLabel(featureList, i);
 						}
 					}
 				} catch (Exception e) {
@@ -1757,6 +1903,93 @@ public class MainActivity extends AppCompatActivity implements
 		} else {
 			return false;
 		}
+	}
+
+	void setLabel (List<Feature> featureList, int i) throws ExecutionException, InterruptedException {
+		TextView address = findViewById(R.id.address);
+		TextView name = findViewById(R.id.name);
+		TextView note = findViewById(R.id.note);
+		TextView category = findViewById(R.id.category);
+
+		String place = "";
+		if (!Objects.equals(featureList.get(i).getStringProperty("addr:city"), null)) {
+			place += featureList.get(i).getStringProperty("addr:city");
+			if (!Objects.equals(featureList.get(i).getStringProperty("addr:street"), null)) {
+				place += ", " + featureList.get(i).getStringProperty("addr:street");
+				if (!Objects.equals(featureList.get(i).getStringProperty("addr:housenumber"), null)) {
+					place += " " + featureList.get(i).getStringProperty("addr:housenumber") + ".";
+				}
+			}
+		} else {
+			List<CarmenFeature> locations =
+					new GeocodeTask().execute(featureList.get(i)).get();
+			if (locations.isEmpty()) {
+			} else {
+				place = locations.get(0).placeName().split(", ")[2] + ", " +
+						locations.get(0).placeName().split(", ")[1];
+			}
+		}
+
+		if (featureList.get(i).getStringProperty("name") == null) {
+			name.setText("-");
+		} else {
+			name.setText(featureList.get(i).getStringProperty("name"));
+		}
+		address.setText(place);
+		note.setText(featureList.get(i).getStringProperty("note"));
+
+		Feature feature = featureList.get(i);
+		String style = categoryFromJson(feature);
+		if (feature.getStringProperty("wheelchair") != null &&
+				!feature.getStringProperty("wheelchair").equals("no")) {
+			style += " (";
+			switch (feature.getStringProperty("wheelchair")) {
+				case "yes":
+					style += getResources().getString(R.string.accessible);
+					break;
+				case "designated":
+					style += getResources().getString(R.string.designated);
+					break;
+				case "limited":
+					style += getResources().getString(R.string.limited);
+					break;
+			}
+			style += " " +
+					getResources().getString(R.string.wheelchair);
+		}
+		if (feature.getStringProperty("dog") != null &&
+				!feature.getStringProperty("dog").equals("no")) {
+			if (feature.getStringProperty("wheelchair") != null &&
+					!Objects.equals(feature.getStringProperty("wheelchair"), "no")) {
+				style += " " + getResources().getString(R.string.and) + " ";
+			} else {
+				style += " (";
+			}
+			switch (feature.getStringProperty("dog")) {
+				case "yes":
+					style += getResources().getString(R.string.accessible);
+					break;
+				case "leashed":
+					style += getResources().getString(R.string.accessible);
+					break;
+				case "limited":
+					style += getResources().getString(R.string.limited);
+					break;
+			}
+			style += " " +
+					getResources().getString(R.string.dog);
+		}
+		if ((feature.getStringProperty("wheelchair") != null &&
+				!feature.getStringProperty("wheelchair").equals("no")) ||
+				(feature.getStringProperty("dog") != null &&
+						!feature.getStringProperty("dog").equals("no"))) {
+			style += ")";
+		}
+		category.setText(style);
+
+		selected_json = featureList.get(i).toJson();
+
+		findViewById(R.id.info).setVisibility(View.VISIBLE);
 	}
 
 	String categoryFromJson (Feature data) {
@@ -1799,7 +2032,7 @@ public class MainActivity extends AppCompatActivity implements
 		} else if (data.getStringProperty("animal_training") != null) {
 			return getResources().getString(R.string.training);
 		} else if (data.getStringProperty("leisure") != null) {
-			switch (data.getStringProperty("shop")) {
+			switch (data.getStringProperty("leisure")) {
 				case "dog_park":
 					return getResources().getString(R.string.park);
 			}
@@ -1876,7 +2109,7 @@ public class MainActivity extends AppCompatActivity implements
 	/**
 	 * Invoked when the bitmaps have been generated from a view.
 	 */
-	public void setImageGenResults (HashMap<String, Bitmap> imageMap) {
+	/*public void setImageGenResults (HashMap<String, Bitmap> imageMap) {
 		if (mapboxMap != null) {
 			mapboxMap.getStyle(style -> {
 // calling addImages is faster as separate addImage calls for each bitmap.
@@ -1889,7 +2122,7 @@ public class MainActivity extends AppCompatActivity implements
 
 			});
 		}
-	}
+	}*/
 
 	/**
 	 * Set a feature selected state.
@@ -1911,6 +2144,36 @@ public class MainActivity extends AppCompatActivity implements
         feature.properties().addProperty(PROPERTY_SELECTED, selectedState);
         refreshSource();
     }*/
+
+	/**
+	 * Utility class to generate Bitmaps for Symbol.
+	 */
+    /*private static class SymbolGenerator {
+        static Bitmap generate(@NonNull View view) {
+            int measureSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+            view.measure(measureSpec, measureSpec);
+
+            int measuredWidth = view.getMeasuredWidth();
+            int measuredHeight = view.getMeasuredHeight();
+
+            view.layout(0, 0, measuredWidth, measuredHeight);
+            Bitmap bitmap = Bitmap.createBitmap(measuredWidth, measuredHeight, Bitmap.Config.ARGB_8888);
+            bitmap.eraseColor(Color.TRANSPARENT);
+            Canvas canvas = new Canvas(bitmap);
+            view.draw(canvas);
+            return bitmap;
+        }
+    }*/
+	private Polygon fromJson (String json) {
+		GsonBuilder gsonBuilder = new GsonBuilder();
+		gsonBuilder.registerTypeAdapter(Position.class, new PositionDeserializer());
+		Type listType = new TypeToken<ArrayList<ArrayList<Position>>>() {
+		}.getType();
+
+		List<List<Position>> coordinates = gsonBuilder.create().fromJson(json, listType);
+
+		return Polygon.fromCoordinates(coordinates);
+	}
 
 	/**
 	 * Checks whether a Feature's boolean "selected" property is true or false
@@ -1971,27 +2234,18 @@ public class MainActivity extends AppCompatActivity implements
 		}
 	}
 
-	/**
-	 * Utility class to generate Bitmaps for Symbol.
-	 */
-    /*private static class SymbolGenerator {
-        static Bitmap generate(@NonNull View view) {
-            int measureSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
-            view.measure(measureSpec, measureSpec);
-
-            int measuredWidth = view.getMeasuredWidth();
-            int measuredHeight = view.getMeasuredHeight();
-
-            view.layout(0, 0, measuredWidth, measuredHeight);
-            Bitmap bitmap = Bitmap.createBitmap(measuredWidth, measuredHeight, Bitmap.Config.ARGB_8888);
-            bitmap.eraseColor(Color.TRANSPARENT);
-            Canvas canvas = new Canvas(bitmap);
-            view.draw(canvas);
-            return bitmap;
-        }
-    }*/
-
 	class GeocodeTask extends AsyncTask<Feature, Void, List<CarmenFeature>> {
+
+		private Polygon fromJson (String json) {
+			GsonBuilder gsonBuilder = new GsonBuilder();
+			gsonBuilder.registerTypeAdapter(Position.class, new PositionDeserializer());
+			Type listType = new TypeToken<ArrayList<ArrayList<Position>>>() {
+			}.getType();
+
+			List<List<Position>> coordinates = gsonBuilder.create().fromJson(json, listType);
+
+			return Polygon.fromCoordinates(coordinates);
+		}
 
 		protected List<CarmenFeature> doInBackground (Feature... features) {
             /*MapboxGeocoder client = new MapboxGeocoder.Builder()
@@ -2006,16 +2260,35 @@ public class MainActivity extends AppCompatActivity implements
                                     .split(",")[1]
                                     .split("]")[0]))
                     .build();*/
+			double lat;
+			double lon;
+			try {
+				lat = Double.parseDouble(features[0].geometry().toJson()
+						.split("\"coordinates\":\\[")[1]
+						.split(",")[0]);
+				lon = Double.parseDouble(features[0].toJson()
+						.split("\"coordinates\":\\[")[1]
+						.split(",")[1]
+						.split("]")[0]);
+			} catch (Exception e) {
+				Double lat_temp = 0d;
+				Double lon_temp = 0d;
+				int count = 0;
+				for (List<Position> places : fromJson(features[0].geometry().toJson().split(
+						"\\{\"type\":\"Polygon\",\"coordinates\":")[1].split("\\}")[0])
+						.getCoordinates()) {
+					for (Position place : places) {
+						lon_temp += place.getLatitude();
+						lat_temp += place.getLongitude();
+						count++;
+					}
+				}
+				lat = lat_temp / count;
+				lon = lon_temp / count;
+			}
 			MapboxGeocoding reverseGeocode = MapboxGeocoding.builder()
 					.accessToken(getString(R.string.access_token))
-					.query(Point.fromLngLat(Double.parseDouble(features[0].toJson()
-									.split("\"coordinates\":\\[")[1]
-									.split(",")[0]),
-
-							Double.parseDouble(features[0].toJson()
-									.split("\"coordinates\":\\[")[1]
-									.split(",")[1]
-									.split("]")[0])))
+					.query(Point.fromLngLat(lat, lon))
 					//.geocodingTypes(GeocodingCriteria.TYPE_ADDRESS)
 					//.languages("hu")
 					.build();
@@ -2050,6 +2323,22 @@ public class MainActivity extends AppCompatActivity implements
 
 		String loadGeoJsonFromAsset (String filename) {
 			StringBuilder sb = new StringBuilder();
+			try {
+				HttpURLConnection c = (HttpURLConnection) new URL(
+						"http://www.turcsanyivince.hu/maps/" + filename + "_polygon.geojson").openConnection();
+				c.setRequestMethod("GET");
+				c.connect();
+				InputStream is = c.getInputStream();
+				BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+				String nextLine = "";
+				while ((nextLine = reader.readLine()) != null) {
+					sb.append(nextLine + "\n");
+				}
+			} catch (Exception exception) {
+				exception.printStackTrace();
+			}
+			polygon = FeatureCollection.fromJson(sb.toString());
+			sb = new StringBuilder();
 			try {
 				HttpURLConnection c = (HttpURLConnection) new URL(
 						"http://www.turcsanyivince.hu/maps/" + filename + ".geojson").openConnection();

@@ -160,13 +160,17 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:checked="true"
-            android:text="@string/auto" />
+            android:text="@string/auto"
+            android:visibility="gone"
+            tools:visibility="visible" />
 
         <Switch
             android:id="@+id/order"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/order" />
+            android:text="@string/order"
+            android:visibility="gone"
+            tools:visibility="visible" />
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/recyclerView"
