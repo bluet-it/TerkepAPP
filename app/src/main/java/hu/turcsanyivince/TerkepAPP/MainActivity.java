@@ -1111,7 +1111,7 @@ public class MainActivity extends AppCompatActivity implements
 				findViewById(R.id.compass_map).setVisibility(View.GONE);
 				list = true;
 				return true;
-			case R.id.navigation_search:
+			/*case R.id.navigation_search:
 				findViewById(R.id.linearLayout).setVisibility(View.VISIBLE);
 				findViewById(R.id.SearchLayout).setVisibility(View.VISIBLE);
 				findViewById(R.id.recyclerView).setVisibility(View.GONE);
@@ -1120,7 +1120,7 @@ public class MainActivity extends AppCompatActivity implements
 				findViewById(R.id.center_map).setVisibility(View.GONE);
 				findViewById(R.id.compass_map).setVisibility(View.GONE);
 				search = true;
-				return true;/*
+				return true;
 			case R.id.navigation_filter:
 				findViewById(R.id.linearLayout).setVisibility(View.VISIBLE);
 				findViewById(R.id.SearchLayout).setVisibility(View.GONE);
@@ -1159,15 +1159,52 @@ public class MainActivity extends AppCompatActivity implements
 			location = Point.fromLngLat(
 					mapboxMap.getLocationComponent().getLastKnownLocation().getLongitude(),
 					mapboxMap.getLocationComponent().getLastKnownLocation().getLatitude());
+
+			double lat;
+			double lon;
+			try {
+				lat = Double.parseDouble(singleFeature.geometry().toJson()
+						.split("\"coordinates\":\\[")[1]
+						.split(",")[0]);
+				lon = Double.parseDouble(singleFeature.toJson()
+						.split("\"coordinates\":\\[")[1]
+						.split(",")[1]
+						.split("]")[0]);
+			} catch (Exception e) {
+				Double lat_temp = 0d;
+				Double lon_temp = 0d;
+				int count = 0;
+				String json_temp = "";
+				try {
+					json_temp = singleFeature.geometry().toJson().split(
+							"\\{\"type\":\"Polygon\",\"coordinates\":")[1].split("\\}")[0];
+				} catch (Exception e1) {
+					json_temp = singleFeature.geometry().toJson().split(
+							"\\{\"type\":\"LineString\",\"coordinates\":")[1].split("\\}")[0];
+				}
+				Polygon poly;
+				try {
+					poly = fromJson(json_temp);
+				}catch (Exception e1){
+					poly = fromJson("["+json_temp+"]");
+				}
+				for (List<Position> places : poly
+						.getCoordinates()) {
+					for (Position pos : places) {
+						lon_temp += pos.getLatitude();
+						lat_temp += pos.getLongitude();
+						count++;
+					}
+				}
+				lat = lat_temp / count;
+				lon = lon_temp / count;
+			}
 			distance = Math.round(new LatLng(location.latitude(), location.longitude()).distanceTo(
-					new LatLng(Double.parseDouble(singleFeature.toJson()
-							.split("\"coordinates\":\\[")[1]
-							.split(",")[1]
-							.split("]")[0]),
-							Double.parseDouble(((singleFeature.toJson()
-									.split("\"coordinates\":\\[")[1]
-									.split(",")[0]))))));
-		}catch (Exception e){}
+					new LatLng(lat,
+							lon)));
+		}catch (Exception e){
+
+		}
 		String place = "";
 		Switch order = findViewById(R.id.order);
 		if (mapboxMap.getLocationComponent().getLastKnownLocation() != null && order.isChecked()) {
