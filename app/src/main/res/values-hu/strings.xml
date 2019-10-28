@@ -40,7 +40,7 @@
     <string name="vegetarian">vegetáriánus</string>
     <string name="lactosefree">laktózmentes</string>
     <string name="order">rendezés távolság szerint</string>
-    <string name="auto">GPS pozíció automatikus frissítése</string>
+    <string name="auto">GPS automatikus frissítése</string>
     <string name="update">frissítés</string>
     <string name="search_distance">keresés távolság alapján:</string>
     <string name="hotel">szálloda</string>
