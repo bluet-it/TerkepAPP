@@ -45,8 +45,13 @@
     <string name="order">sort by distance</string>
     <string name="auto">ubdate GPS automatically</string>
     <string name="update">update</string>
-    <string name="search_distance">filter by distance:</string>
+    <string name="search_distance">search by distance:</string>
     <string name="kilometer" translatable="false">km</string>
     <string name="hotel">hotel</string>
-    <string name="filtering">filter</string>
+    <string name="hospital">hospital</string>
+    <string name="clinic">clinic</string>
+    <string name="pharmacy">pharmacy</string>
+    <string name="dentist">dentist</string>
+    <string name="doctor">doctor</string>
+    <string name="search_name">search by name:</string>
 </resources>

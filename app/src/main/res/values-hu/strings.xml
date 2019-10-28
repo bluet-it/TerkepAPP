@@ -17,7 +17,7 @@
     <string name="library">könyvtár</string>
     <string name="concerthall">koncertterem</string>
     <string name="water">víz</string>
-    <string name="toilet">mellékhelység</string>
+    <string name="toilet">mellékhelyiség</string>
     <string name="bookshop">könyvesbolt</string>
     <string name="museum">múzeum</string>
     <string name="gallery">galléria</string>
@@ -42,7 +42,12 @@
     <string name="order">rendezés távolság szerint</string>
     <string name="auto">GPS automatikus frissítése</string>
     <string name="update">frissítés</string>
-    <string name="search_distance">szűrő távolság alapján:</string>
+    <string name="search_distance">keresés távolság alapján:</string>
     <string name="hotel">szálloda</string>
-    <string name="filtering">szűrés</string>
+    <string name="clinic">klinika</string>
+    <string name="hospital">kórház</string>
+    <string name="pharmacy">gyógyszertár</string>
+    <string name="dentist">fogorvos</string>
+    <string name="doctor">orvos</string>
+    <string name="search_name">keresés név alapján:</string>
 </resources>

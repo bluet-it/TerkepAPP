@@ -14,9 +14,5 @@
         android:id="@+id/navigation_search"
         android:icon="@drawable/ic_search_black_24dp"
         android:title="@string/search" />
-    <item
-        android:id="@+id/navigation_filter"
-        android:icon="@drawable/ic_filter_list_black_24dp"
-        android:title="@string/filter" />
 
 </menu>
