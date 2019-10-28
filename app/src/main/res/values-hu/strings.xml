@@ -42,6 +42,7 @@
     <string name="order">rendezés távolság szerint</string>
     <string name="auto">GPS automatikus frissítése</string>
     <string name="update">frissítés</string>
-    <string name="search_distance">keresés távolság alapján:</string>
+    <string name="search_distance">szűrő távolság alapján:</string>
     <string name="hotel">szálloda</string>
+    <string name="filtering">szűrés</string>
 </resources>

@@ -45,7 +45,8 @@
     <string name="order">sort by distance</string>
     <string name="auto">ubdate GPS automatically</string>
     <string name="update">update</string>
-    <string name="search_distance">search by distance:</string>
+    <string name="search_distance">filter by distance:</string>
     <string name="kilometer" translatable="false">km</string>
     <string name="hotel">hotel</string>
+    <string name="filtering">filter</string>
 </resources>

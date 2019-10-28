@@ -49,6 +49,7 @@
         android:layout_marginBottom="8dp"
         android:clickable="true"
         android:focusable="true"
+        mapbox:srcCompat="@drawable/ic_compass_black_24dp"
         mapbox:backgroundTint="@android:color/white"
         mapbox:layout_constraintBottom_toTopOf="@+id/center_map"
         mapbox:layout_constraintEnd_toEndOf="@+id/center_map" />
@@ -148,7 +149,7 @@
                         android:id="@+id/search_distance"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/search" />
+                        android:text="@string/filtering" />
                 </LinearLayout>
 
             </LinearLayout>
