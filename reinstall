@@ -1,1 +1,6 @@
-/media/v/6F49CF9F678434C3/projects/Android/scripts/reinstall
+#! /bin/bash
+./gradlew build
+
+./delete
+
+./upload
