@@ -50,4 +50,7 @@
     <string name="dentist">fogorvos</string>
     <string name="doctor">orvos</string>
     <string name="search_name">keresés név alapján:</string>
+    <string name="landfill">hulladéklerakó</string>
+    <string name="recycle_ctr">újrahasználati központ</string>
+    <string name="recycle_bin">szelektív hulladékgyűjtő</string>
 </resources>

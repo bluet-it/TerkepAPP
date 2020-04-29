@@ -6,3 +6,4 @@
 ./run uninstall hu.turcsanyivince.TerkepAPP.H2OAPP
 ./run uninstall hu.turcsanyivince.TerkepAPP.EtrendAPP
 ./run uninstall hu.turcsanyivince.TerkepAPP.EgeszsegAPP
+./run uninstall hu.turcsanyivince.TerkepAPP.KukAPP

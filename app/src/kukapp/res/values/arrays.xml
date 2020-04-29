@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="filter">
+        <item>@string/all</item>
+        <item>@string/trash</item>
+        <item>@string/recycle_bin</item>
+        <item>@string/recycle_ctr</item>
+    </string-array>
+</resources>

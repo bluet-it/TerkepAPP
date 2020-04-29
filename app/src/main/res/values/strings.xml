@@ -54,4 +54,7 @@
     <string name="dentist">dentist</string>
     <string name="doctor">doctor</string>
     <string name="search_name">search by name:</string>
+    <string name="recycle_bin">recycling container</string>
+    <string name="recycle_ctr">recycling center</string>
+    <string name="landfill">landfill</string>
 </resources>

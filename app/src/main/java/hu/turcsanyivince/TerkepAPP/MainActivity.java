@@ -67,6 +67,7 @@ import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.style.expressions.Expression;
 import com.mapbox.mapboxsdk.style.layers.CircleLayer;
 import com.mapbox.mapboxsdk.style.layers.FillLayer;
+import com.mapbox.mapboxsdk.style.layers.Layer;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonOptions;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
@@ -107,6 +108,8 @@ import static com.mapbox.mapboxsdk.style.expressions.Expression.literal;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.lt;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.not;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.toNumber;
+import static com.mapbox.mapboxsdk.style.layers.Property.NONE;
+import static com.mapbox.mapboxsdk.style.layers.Property.VISIBLE;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.circleColor;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.circleRadius;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillColor;
@@ -118,6 +121,7 @@ import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.textField;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.textIgnorePlacement;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.textOffset;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.textSize;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.visibility;
 
 public class MainActivity extends AppCompatActivity implements
 		OnMapReadyCallback, PermissionsListener,
@@ -261,6 +265,25 @@ public class MainActivity extends AppCompatActivity implements
 
 		}
 	});
+
+
+	/*private void toggleLayer(String category) {
+		mapboxMap.getStyle(new Style.OnStyleLoaded() {
+			@Override
+			public void onStyleLoaded(@NonNull Style style) {
+				Layer layer = style.getLayer("points");
+				if (layer != null) {
+					if (VISIBLE.equals(layer.getVisibility().getValue())) {
+						layer.setFilter(eq(get(keyValueCategory(category)[0]),keyValueCategory(category)[1]));//FIXME
+					} else {
+						layer.setProperties(visibility(VISIBLE));
+					}
+				}
+			}
+		});
+	}*/
+
+
 	Thread Filter = new Thread(() -> {
 		if (!list) {
 			//category
@@ -268,6 +291,8 @@ public class MainActivity extends AppCompatActivity implements
 			Switch order = findViewById(R.id.order);
 
 			String s = ((Spinner) findViewById(R.id.filter)).getSelectedItem().toString();
+
+			//toggleLayer();
 
 			if (s.equals(getResources().getString(R.string.all))) {
 				temp1_json = json;
@@ -1434,6 +1459,15 @@ public class MainActivity extends AppCompatActivity implements
 		} else if (category.equals(getResources().getString(R.string.doctor))) {
 			key = "amenity";
 			value = "doctors";
+		} else if (category.equals(getResources().getString(R.string.recycle_bin))) {
+			key = "recycling_type";
+			value = "container";
+		} else if (category.equals(getResources().getString(R.string.recycle_ctr))) {
+			key = "recycling_type";
+			value = "centre";
+		} else if (category.equals(getResources().getString(R.string.landfill))) {
+			key = "landuse";
+			value = "landfill";
 		}
 		return new String[]{key, value};
 	}
@@ -1865,6 +1899,14 @@ public class MainActivity extends AppCompatActivity implements
 						literal(getResources().getString(R.string.gallery)),
 						eq(get("tourism"), "hotel"),
 						literal(getResources().getString(R.string.hotel)),
+						eq(get("amenity"), "waste_disposal"),
+						literal(getResources().getString(R.string.trash)),
+						eq(get("recycling_type"), "container"),
+						literal(getResources().getString(R.string.recycle_bin)),
+						eq(get("recycling_type"), "centre"),
+						literal(getResources().getString(R.string.recycle_ctr)),
+						eq(get("landuse"), "landfill"),
+						literal(getResources().getString(R.string.landfill)),
 						has("shop"),
 						literal(getResources().getString(R.string.shop)),
 						literal(getResources().getString(R.string.other)))),
@@ -2089,6 +2131,8 @@ public class MainActivity extends AppCompatActivity implements
 					return getResources().getString(R.string.hospital);
 				case "dentist":
 					return getResources().getString(R.string.dentist);
+				case "waste_disposal":
+					return getResources().getString(R.string.trash);
 			}
 		} else if (data.getStringProperty("shop") != null) {
 			switch (data.getStringProperty("shop")) {
@@ -2110,6 +2154,12 @@ public class MainActivity extends AppCompatActivity implements
 			if (data.getStringProperty("tourism").equals("museum")) {
 				return getResources().getString(R.string.museum);
 			} else if (data.getStringProperty("tourism").equals("gallery")) {
+				return getResources().getString(R.string.gallery);
+			}
+		}  else if (data.getStringProperty("recycling_type") != null) {
+			if (data.getStringProperty("recycling_type").equals("museum")) {
+				return getResources().getString(R.string.museum);
+			} else if (data.getStringProperty("recycling_type").equals("gallery")) {
 				return getResources().getString(R.string.gallery);
 			}
 		} else {

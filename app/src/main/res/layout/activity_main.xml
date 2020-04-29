@@ -29,6 +29,16 @@
 
     </com.mapbox.mapboxsdk.maps.MapView>
 
+    <Spinner
+        android:id="@+id/filter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:entries="@array/filter"
+        mapbox:layout_constraintEnd_toEndOf="parent"
+        mapbox:layout_constraintStart_toStartOf="parent"
+        mapbox:layout_constraintTop_toBottomOf="@+id/placeholder_topbar" />
+
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/center_map"
         android:layout_width="wrap_content"
@@ -54,23 +64,26 @@
         mapbox:layout_constraintBottom_toTopOf="@+id/center_map"
         mapbox:layout_constraintEnd_toEndOf="@+id/center_map" />
 
+    <Space
+        android:id="@+id/placeholder_topbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="visible"
+        mapbox:layout_constraintTop_toTopOf="parent"
+        mapbox:layout_constraintEnd_toEndOf="parent"
+        mapbox:layout_constraintStart_toStartOf="parent" />
+
     <LinearLayout
         android:id="@+id/linearLayout"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:background="?android:attr/windowBackground"
-        android:visibility="visible"
+        android:orientation="vertical"
+        android:visibility="gone"
         mapbox:layout_constraintBottom_toTopOf="@+id/nav_view"
         mapbox:layout_constraintEnd_toEndOf="parent"
         mapbox:layout_constraintStart_toStartOf="parent"
-        mapbox:layout_constraintTop_toTopOf="parent"
-        android:orientation="vertical">
-
-        <Space
-            android:id="@+id/placeholder_topbar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:visibility="visible" />
+        mapbox:layout_constraintTop_toBottomOf="@+id/placeholder_topbar">
 
         <LinearLayout
             android:id="@+id/FilterLayout"
@@ -78,12 +91,12 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <Spinner
+            <!--Spinner
                 android:id="@+id/filter"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:entries="@array/filter" />
+                android:entries="@array/filter" /-->
 
             <LinearLayout
                 android:id="@+id/distanceLayout"
@@ -199,16 +212,14 @@
 
     <android.support.design.widget.BottomNavigationView
         android:id="@+id/nav_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:background="?android:attr/windowBackground"
         mapbox:labelVisibilityMode="labeled"
         mapbox:layout_constraintBottom_toTopOf="@+id/placeholder_keyboard"
         mapbox:layout_constraintEnd_toEndOf="parent"
-        mapbox:layout_constraintStart_toStartOf="parent"
-        mapbox:menu="@menu/bottom_nav_menu">
-
-    </android.support.design.widget.BottomNavigationView>
+        mapbox:layout_constraintStart_toStartOf="parent" />
+        <!--mapbox:menu="@menu/bottom_nav_menu" TODO -->
 
     <!--<ProgressBar
         android:id="@+id/progressBar"

@@ -6,3 +6,4 @@
 ./run install -r app/build/outputs/apk/etrendapp/debug/app-etrendapp-debug.apk
 ./run install -r app/build/outputs/apk/egeszsegapp/debug/app-egeszsegapp-debug.apk
 ./run install -r app/build/outputs/apk/h2oapp/debug/app-h2oapp-debug.apk
+./run install -r app/build/outputs/apk/h2oapp/debug/app-kukapp-debug.apk
